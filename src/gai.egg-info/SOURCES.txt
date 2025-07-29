@@ -1,0 +1,11 @@
+LICENSE
+README.md
+pyproject.toml
+src/gai/__init__.py
+src/gai/cli.py
+src/gai.egg-info/PKG-INFO
+src/gai.egg-info/SOURCES.txt
+src/gai.egg-info/dependency_links.txt
+src/gai.egg-info/entry_points.txt
+src/gai.egg-info/requires.txt
+src/gai.egg-info/top_level.txt
