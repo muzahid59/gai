@@ -1,7 +1,0 @@
-#!/bin/bash
-
-# Get the directory where the script is located
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-# Execute the python script with all the arguments passed to this script
-python3 "$DIR/git_ai.py" "$@"
