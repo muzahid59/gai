@@ -6,6 +6,8 @@ import sys
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+import time
+import threading
 
 # --- Configuration ---
 DEFAULT_MODEL = "llama3.2"
@@ -35,34 +37,49 @@ def get_staged_diff():
 
 def generate_commit_message(diff, model, endpoint):
     """Sends the diff to the LLM and returns the generated commit message."""
-    prompt = (
-        "Based on the following `git diff --staged` output, please generate a concise and meaningful commit message. "
-        "The message MUST follow the Conventional Commits specification (e.g., 'feat:', 'fix:', 'docs:', 'style:', 'refactor:', 'test:', 'chore:'). "
-        "The subject line should be 50 characters or less. "
-        "Follow the subject line with a blank line, then a more detailed body explaining the what and why of the changes. "
-        "Do not include any other explanatory text, comments, or markdown formatting in your response. Just the raw commit message."
-        f"\n\n---\n\n{diff}"
+    system_prompt = (
+        "You are an expert programmer tasked with writing a Git commit message. "
+        "Based on the following `git diff --staged` output, generate a commit message that follows the Conventional Commits specification. "
+        "The commit message must have a subject line of 50 characters or less, followed by a blank line, and then a more detailed explanatory body. "
+        "Do not include any introductory phrases, comments, or markdown formatting like ```. Your entire response should be only the raw commit message text."
+        "\n\nHere is an example of the desired format:\n"
+        "feat: add user authentication\n\n"
+        "Implement JWT-based authentication for the API.\n"
+        "Add login and registration endpoints.\n"
+        "Protect sensitive routes with an authentication middleware."
     )
+    user_prompt = f"---\n\nGIT DIFF:\n{diff}"
 
-    print(f"\u001b[1;34m\u001b[0m Contacting ollama model '{model}' to generate commit message...")
-
-    json_payload = {"model": model, "prompt": prompt, "stream": False}
-    request_url = f"{endpoint}/generate"
+    json_payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        "stream": False
+    }
+    request_url = f"{endpoint}/chat"
 
     try:
         response = requests.post(
             request_url,
             json=json_payload,
-            timeout=30
+            timeout=60
         )
         response.raise_for_status()
 
         full_response = response.json()
-        return full_response.get("response", "").strip()
+        
+        if "message" in full_response and "content" in full_response["message"]:
+            return full_response["message"]["content"].strip()
+        else:
+            print(f"\n\033[31mError: Unexpected response format from Ollama.\033[0m")
+            print(f"Response: {full_response}")
+            sys.exit(1)
 
     except requests.exceptions.RequestException as e:
         print(f"\n\033[31mError connecting to Ollama:\033[0m {e}\n" \
-              "Please ensure the Ollama server is running and accessible at {endpoint}.")
+              f"Please ensure the Ollama server is running and accessible at {endpoint}.")
         sys.exit(1)
 
 def commit(message):
@@ -91,6 +108,17 @@ def edit_message(message):
         print(f"Error opening editor: {e}")
         return None
 
+def spinner_animation(stop_event):
+    """Displays a spinner animation."""
+    spinner_chars = "|/-\\"
+    while not stop_event.is_set():
+        for char in spinner_chars:
+            sys.stdout.write(f"\r\033[1;34m\u001b[0m Contacting ollama model to generate commit message... {char}")
+            sys.stdout.flush()
+            time.sleep(0.1)
+    sys.stdout.write("\r" + " " * 80 + "\r") # Clear the line
+    sys.stdout.flush()
+
 def main():
     load_dotenv() # Load environment variables from .env file
 
@@ -107,7 +135,16 @@ def main():
         print("No staged changes found. Please stage your changes with 'git add' first.")
         sys.exit(0)
 
-    suggested_message = generate_commit_message(staged_diff, model_to_use, endpoint_to_use)
+    stop_spinner = threading.Event()
+    spinner_thread = threading.Thread(target=spinner_animation, args=(stop_spinner,))
+    spinner_thread.start()
+
+    try:
+        suggested_message = generate_commit_message(staged_diff, model_to_use, endpoint_to_use)
+    finally:
+        stop_spinner.set()
+        spinner_thread.join()
+
 
     while True:
         print("\n---")
@@ -128,7 +165,14 @@ def main():
                 commit(edited_message)
                 break
         elif choice == 'r':
-            suggested_message = generate_commit_message(staged_diff, model_to_use, endpoint_to_use)
+            stop_spinner = threading.Event()
+            spinner_thread = threading.Thread(target=spinner_animation, args=(stop_spinner,))
+            spinner_thread.start()
+            try:
+                suggested_message = generate_commit_message(staged_diff, model_to_use, endpoint_to_use)
+            finally:
+                stop_spinner.set()
+                spinner_thread.join()
         elif choice == 'q':
             print("Commit aborted.")
             break
