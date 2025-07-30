@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "gai"
 version = "0.1.0"
 authors = [
-    { name = "Your Name", email = "you@example.com" },
+    { name = "Muzahid", email = "mmsaddam@gmail.com" },
 ]
 description = "An AI-powered git commit message generator."
 readme = "README.md"
@@ -23,8 +23,8 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/your-username/gai"
-"Bug Tracker" = "https://github.com/your-username/gai/issues"
+"Homepage" = "https://github.com/muzahid59/gai"
+"Bug Tracker" = "https://github.com/muzahid59/gai/issues"
 
 [project.scripts]
 gai = "gai.cli:main"
