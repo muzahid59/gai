@@ -22,28 +22,17 @@ pip install gai
 
 ## Configuration
 
-`gai` can be configured using environment variables or command-line arguments. Command-line arguments take precedence over environment variables.
+`gai` can be configured using a `.env` file in the project root or by providing values interactively if not found in the environment.
 
--   **`GAI_MODEL` / `--model`**: The LLM model to use (e.g., `llama3`, `gpt-4o`).
--   **`GAI_ENDPOINT` / `--endpoint`**: The URL of the LLM API endpoint (e.g., `http://localhost:11434/api`, `https://api.openai.com`).
--   **`GAI_PROVIDER` / `--provider`**: The LLM provider (e.g., `ollama`, `openai`).
--   **`GAI_API_KEY` / `--api-key`**: The API key for the LLM provider (if required).
+Create a `.env` file with the following variables:
 
-**Example using environment variables:**
-
-```bash
-export GAI_MODEL="llama3"
-export GAI_ENDPOINT="http://localhost:11434/api"
-export GAI_PROVIDER="ollama"
-# export GAI_API_KEY="sk-..." # Only if using a provider that requires an API key
+```dotenv
+MODEL=llama3.2
+CHAT_URL=http://localhost:11434/api
+STYLE=concise # or detailed
 ```
 
-**Example using command-line arguments (overrides environment variables):**
-
-```bash
-gai --model gemma:2b --provider ollama
-gai --model gpt-4o --provider openai --api-key sk-your-openai-key
-```
+If any of these variables are not set in the `.env` file or as environment variables, `gai` will prompt you for the values interactively.
 
 ## Usage
 
