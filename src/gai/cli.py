@@ -7,33 +7,9 @@ import os
 from pathlib import Path
 
 # --- Configuration ---
-CONFIG_DIR = Path.home() / ".own-cli"
-CONFIG_FILE = CONFIG_DIR / "config.json"
 DEFAULT_MODEL = "llama3.2"
-
-def get_config():
-    """Reads the config file and returns the configuration."""
-    if not CONFIG_FILE.is_file():
-        return {"model": DEFAULT_MODEL}
-    try:
-        with open(CONFIG_FILE, "r") as f:
-            config = json.load(f)
-            if "model" not in config:
-                config["model"] = DEFAULT_MODEL
-            return config
-    except (json.JSONDecodeError, IOError):
-        return {"model": DEFAULT_MODEL}
-
-def set_model_in_config(model_name):
-    """Saves the selected model to the config file."""
-    try:
-        CONFIG_DIR.mkdir(exist_ok=True)
-        with open(CONFIG_FILE, "w") as f:
-            json.dump({"model": model_name}, f, indent=4)
-        print(f"\033[32m✔ Default model saved to {CONFIG_FILE}\033[0m")
-    except IOError as e:
-        print(f"Error saving configuration: {e}")
-        sys.exit(1)
+DEFAULT_PROVIDER = "ollama"
+DEFAULT_ENDPOINT = "http://localhost:11434/api"
 
 def get_staged_diff():
     """Runs 'git diff --staged' and returns the output."""
@@ -55,8 +31,8 @@ def get_staged_diff():
         print(f"Error getting git diff: {e.stderr}")
         sys.exit(1)
 
-def generate_commit_message(diff, model):
-    """Sends the diff to Ollama and returns the generated commit message."""
+def generate_commit_message(diff, model, endpoint, provider, api_key):
+    """Sends the diff to the LLM and returns the generated commit message."""
     prompt = (
         "Based on the following `git diff --staged` output, please generate a concise and meaningful commit message. "
         "The message MUST follow the Conventional Commits specification (e.g., 'feat:', 'fix:', 'docs:', 'style:', 'refactor:', 'test:', 'chore:'). "
@@ -66,21 +42,51 @@ def generate_commit_message(diff, model):
         f"\n\n---\n\n{diff}"
     )
 
-    print(f"\033[1;34mℹ\033[0m Contacting model '{model}' to generate commit message...")
+    print(f"\u001b[1;34m\u001b[0m Contacting {provider} model '{model}' to generate commit message...")
+
+    headers = {}
+    json_payload = {}
+    request_url = endpoint
+
+    if provider == "ollama":
+        json_payload = {"model": model, "prompt": prompt, "stream": False}
+        request_url = f"{endpoint}/generate"
+    elif provider == "openai":
+        if not api_key:
+            print("Error: API key is required for OpenAI provider.")
+            sys.exit(1)
+        headers = {"Authorization": f"Bearer {api_key}"}
+        json_payload = {
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 500,
+            "temperature": 0.7
+        }
+        request_url = f"{endpoint}/v1/chat/completions"
+    else:
+        print(f"Error: Unsupported provider: {provider}")
+        sys.exit(1)
 
     try:
         response = requests.post(
-            "http://localhost:11434/api/generate",
-            json={"model": model, "prompt": prompt, "stream": False},
+            request_url,
+            headers=headers,
+            json=json_payload,
             timeout=30
         )
         response.raise_for_status()
-        full_response = response.json()
-        return full_response.get("response", "").strip()
+
+        if provider == "ollama":
+            full_response = response.json()
+            return full_response.get("response", "").strip()
+        elif provider == "openai":
+            full_response = response.json()
+            return full_response["choices"][0]["message"]["content"].strip()
 
     except requests.exceptions.RequestException as e:
-        print(f"\nError connecting to Ollama: {e}")
-        print("Please ensure the Ollama server is running.")
+        print(f"\nError connecting to LLM: {e}")
+        if provider == "ollama":
+            print("Please ensure the Ollama server is running.")
         sys.exit(1)
 
 def commit(message):
@@ -110,37 +116,47 @@ def edit_message(message):
         return None
 
 def main():
-    config = get_config()
-    
     parser = argparse.ArgumentParser(
         description="An AI-powered git commit message generator."
     )
     parser.add_argument(
         "--model",
         type=str,
-        default=config.get("model", DEFAULT_MODEL),
-        help=f"The Ollama model to use. Overrides the model in {CONFIG_FILE}. Defaults to '{config.get('model', DEFAULT_MODEL)}'."
+        default=os.getenv("GAI_MODEL", DEFAULT_MODEL),
+        help=f"The LLM model to use. Defaults to environment variable GAI_MODEL or '{DEFAULT_MODEL}'."
     )
     parser.add_argument(
-        "--set-model",
+        "--endpoint",
         type=str,
-        metavar='MODEL_NAME',
-        help="Set and save the default Ollama model in the config file (e.g., 'llama3')."
+        default=os.getenv("GAI_ENDPOINT", DEFAULT_ENDPOINT),
+        help=f"The LLM API endpoint to use. Defaults to environment variable GAI_ENDPOINT or '{DEFAULT_ENDPOINT}'."
+    )
+    parser.add_argument(
+        "--provider",
+        type=str,
+        choices=["ollama", "openai"],
+        default=os.getenv("GAI_PROVIDER", DEFAULT_PROVIDER),
+        help=f"The LLM provider (e.g., 'ollama', 'openai'). Defaults to environment variable GAI_PROVIDER or '{DEFAULT_PROVIDER}'."
+    )
+    parser.add_argument(
+        "--api-key",
+        type=str,
+        default=os.getenv("GAI_API_KEY"),
+        help="The API key for the LLM provider. Defaults to environment variable GAI_API_KEY."
     )
     args = parser.parse_args()
 
-    if args.set_model:
-        set_model_in_config(args.set_model)
-        sys.exit(0)
-
     model_to_use = args.model
+    endpoint_to_use = args.endpoint
+    provider_to_use = args.provider
+    api_key_to_use = args.api_key
 
     staged_diff = get_staged_diff()
     if not staged_diff:
         print("No staged changes found. Please stage your changes with 'git add' first.")
         sys.exit(0)
 
-    suggested_message = generate_commit_message(staged_diff, model_to_use)
+    suggested_message = generate_commit_message(staged_diff, model_to_use, endpoint_to_use, provider_to_use, api_key_to_use)
 
     while True:
         print("\n---")

@@ -22,13 +22,28 @@ pip install gai
 
 ## Configuration
 
-Before using the tool, you need to tell it which Ollama model to use. You only need to do this once.
+`gai` can be configured using environment variables or command-line arguments. Command-line arguments take precedence over environment variables.
+
+-   **`GAI_MODEL` / `--model`**: The LLM model to use (e.g., `llama3`, `gpt-4o`).
+-   **`GAI_ENDPOINT` / `--endpoint`**: The URL of the LLM API endpoint (e.g., `http://localhost:11434/api`, `https://api.openai.com`).
+-   **`GAI_PROVIDER` / `--provider`**: The LLM provider (e.g., `ollama`, `openai`).
+-   **`GAI_API_KEY` / `--api-key`**: The API key for the LLM provider (if required).
+
+**Example using environment variables:**
 
 ```bash
-gai --set-model llama3
+export GAI_MODEL="llama3"
+export GAI_ENDPOINT="http://localhost:11434/api"
+export GAI_PROVIDER="ollama"
+# export GAI_API_KEY="sk-..." # Only if using a provider that requires an API key
 ```
 
-Replace `llama3` with your preferred model (e.g., `gemma:2b`, `codellama`). This command saves your choice in a configuration file at `~/.own-cli/config.json`.
+**Example using command-line arguments (overrides environment variables):**
+
+```bash
+gai --model gemma:2b --provider ollama
+gai --model gpt-4o --provider openai --api-key sk-your-openai-key
+```
 
 ## Usage
 
