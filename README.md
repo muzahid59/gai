@@ -14,24 +14,33 @@ It analyzes your staged changes, generates a conventional commit message, and as
 
 ## Installation
 
-You can install `gai` using pip:
+It is recommended to install `gai` in a virtual environment to avoid conflicts with other packages.
 
 ```bash
+python -m venv .venv
+source .venv/bin/activate  # On Windows use `.venv\Scripts\activate`
 pip install gai
 ```
 
 ## Configuration
 
-`gai` can be configured using a `.env` file in the project root or by providing values interactively if not found in the environment.
+`gai` can be configured using a `.env` file in the project root. You can copy the example file to get started:
 
-Create a `.env` file with the following variables:
+```bash
+cp .env.example .env
+```
+
+The `.env` file has the following variables:
 
 ```dotenv
+# The Ollama model to use for generating commit messages (e.g., llama3, codegemma)
 MODEL=llama3.2
+
+# The URL of the Ollama API endpoint
 CHAT_URL=http://localhost:11434/api
 ```
 
-If any of these variables are not set in the `.env` file or as environment variables, `gai` will prompt you for the values interactively.
+If these variables are not set in the `.env` file or as environment variables, `gai` will prompt you for the values interactively.
 
 ## Usage
 
