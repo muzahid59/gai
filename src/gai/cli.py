@@ -37,17 +37,32 @@ def get_staged_diff():
 
 def generate_commit_message(diff, model, endpoint):
     """Sends the diff to the LLM and returns the generated commit message."""
-    system_prompt = (
-        "You are an expert programmer tasked with writing a Git commit message. "
-        "Based on the following `git diff --staged` output, generate a commit message that follows the Conventional Commits specification. "
-        "The commit message must have a subject line of 50 characters or less, followed by a blank line, and then a more detailed explanatory body. "
-        "Do not include any introductory phrases, comments, or markdown formatting like ```. Your entire response should be only the raw commit message text."
-        "\n\nHere is an example of the desired format:\n"
-        "feat: add user authentication\n\n"
-        "Implement JWT-based authentication for the API.\n"
-        "Add login and registration endpoints.\n"
-        "Protect sensitive routes with an authentication middleware."
+    system_prompt=(
+        "You are the best git assistant whose aim is to generate a git commit message."
+        "IT MUST BE written in English, be concise, be lowercase, relevant and straight to the point."
+        "IT MUST FOLLOW conventional commits specifications and the following template:"
+        "<type>[optional scope]: <short description>"
+       
+        "[optional body]"
+        
+        "Where <type> MUST BE ONE OF: fix, feat, build, chore, ci, docs, style, refactor, perf, test"
+        "Where <type> MUST NOT BE: add, update, delete etc."
+        "A commit that has a footer BREAKING CHANGE:, or appends a ! after the type, introduces a breaking API change."
+        "DO NOT ADD UNDER ANY CIRCUMSTANCES: explanation about the commit, details such as file, changes, hash or the conventional commits specs."
+        "Here is the git diff:"
     )
+    
+    # system_prompt = (
+    #     "You are an expert programmer tasked with writing a Git commit message. "
+    #     "Based on the following `git diff --staged` output, generate a commit message that follows the Conventional Commits specification. "
+    #     "The commit message must have a subject line of 50 characters or less, followed by a blank line, and then a more detailed explanatory body. "
+    #     "Do not include any introductory phrases, comments, or markdown formatting like ```. Your entire response should be only the raw commit message text."
+    #     "\n\nHere is an example of the desired format:\n"
+    #     "feat: add user authentication\n\n"
+    #     "Implement JWT-based authentication for the API.\n"
+    #     "Add login and registration endpoints.\n"
+    #     "Protect sensitive routes with an authentication middleware."
+    # )
     user_prompt = f"---\n\nGIT DIFF:\n{diff}"
 
     json_payload = {
