@@ -29,7 +29,6 @@ Create a `.env` file with the following variables:
 ```dotenv
 MODEL=llama3.2
 CHAT_URL=http://localhost:11434/api
-STYLE=concise # or detailed
 ```
 
 If any of these variables are not set in the `.env` file or as environment variables, `gai` will prompt you for the values interactively.
