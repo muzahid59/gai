@@ -6,6 +6,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import time
 import threading
+import re
 from gai.provider import Provider
 from gai.ollama_client import OllamaProvider
 from gai.openai_client import OpenAIProvider
@@ -100,6 +101,72 @@ def clean_commit_message(message):
     cleaned = re.sub(r'\n\s*\n\s*\n', '\n\n', cleaned)  # Replace 3+ newlines with 2
     cleaned = cleaned.strip()
     return cleaned
+
+def detect_credentials(diff_content):
+    """Detect potential credentials in the git diff and return a list of warnings."""
+    warnings = []
+    
+    # Common credential patterns
+    patterns = {
+        'API Keys': [
+            r'(?i)(api[_-]?key|apikey)\s*[:=]\s*[\'"][a-zA-Z0-9_-]{20,}[\'"]',
+            r'(?i)(secret[_-]?key|secretkey)\s*[:=]\s*[\'"][a-zA-Z0-9_-]{20,}[\'"]',
+            r'sk-[a-zA-Z0-9]{48}',  # OpenAI API key pattern
+        ],
+        'Passwords': [
+            r'(?i)(password|passwd|pwd)\s*[:=]\s*[\'"][^\'"\s]{8,}[\'"]',
+        ],
+        'Database URLs': [
+            r'(?i)(database[_-]?url|db[_-]?url)\s*[:=]\s*[\'"][^\'"\s]+[\'"]',
+            r'(?i)(mongodb|mysql|postgresql|postgres)://[^\'"\s]+',
+        ],
+        'Private Keys': [
+            r'-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----',
+            r'-----BEGIN\s+OPENSSH\s+PRIVATE\s+KEY-----',
+        ],
+        'Tokens': [
+            r'(?i)(access[_-]?token|auth[_-]?token|bearer[_-]?token)\s*[:=]\s*[\'"][a-zA-Z0-9_-]{20,}[\'"]',
+            r'(?i)(jwt[_-]?token|refresh[_-]?token)\s*[:=]\s*[\'"][a-zA-Z0-9._-]{20,}[\'"]',
+        ],
+        'AWS Credentials': [
+            r'AKIA[0-9A-Z]{16}',  # AWS Access Key
+            r'(?i)(aws[_-]?secret[_-]?access[_-]?key)\s*[:=]\s*[\'"][a-zA-Z0-9/+=]{40}[\'"]',
+        ],
+        'Environment Variables': [
+            r'(?i)(secret|key|token|password|pwd|pass)\s*[:=]\s*[\'"][^\'"\s]{8,}[\'"]',
+        ]
+    }
+    
+    # Check each line that's being added (starts with +)
+    added_lines = [line[1:] for line in diff_content.split('\n') if line.startswith('+') and not line.startswith('+++')]
+    
+    for line in added_lines:
+        for category, pattern_list in patterns.items():
+            for pattern in pattern_list:
+                if re.search(pattern, line):
+                    warnings.append(f"Potential {category.lower()} detected in line: {line.strip()}")
+                    break  # Only report once per line per category
+    
+    return warnings
+
+def prompt_credential_warning(warnings):
+    """Display credential warnings and ask user if they want to continue."""
+    print("\n\033[1;31m⚠️  SECURITY WARNING ⚠️\033[0m")
+    print("\033[33mPotential credentials or sensitive information detected:\033[0m\n")
+    
+    for warning in warnings:
+        print(f"  • {warning}")
+    
+    print("\n\033[1;33mThis could expose sensitive information in your commit history!\033[0m")
+    
+    while True:
+        choice = input("\nDo you want to continue anyway? \033[1m[Y]\u001b[0mes/\033[1m[N]\u001b[0mo (y/n): ").lower().strip()
+        if choice in ['y', 'yes']:
+            return True
+        elif choice in ['n', 'no']:
+            return False
+        else:
+            print("Please enter 'y' for yes or 'n' for no.")
 
 def save_provider_model_pair(provider, model):
     """Save the provider-model pair to the .env file."""
@@ -268,6 +335,13 @@ def main():
     if not staged_diff:
         print("No staged changes found. Please stage your changes with 'git add' first.")
         sys.exit(0)
+
+    # Check for potential credentials in the diff
+    credential_warnings = detect_credentials(staged_diff)
+    if credential_warnings:
+        if not prompt_credential_warning(credential_warnings):
+            print("Commit aborted for security reasons.")
+            sys.exit(0)
 
     stop_spinner = threading.Event()
     spinner_thread = threading.Thread(target=spinner_animation, args=(stop_spinner,))
