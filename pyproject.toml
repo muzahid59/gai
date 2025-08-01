@@ -20,6 +20,8 @@ classifiers = [
 ]
 dependencies = [
     "requests",
+    "python-dotenv",
+    "openai",
 ]
 
 [project.urls]

@@ -36,45 +36,7 @@ def test_get_staged_diff(mock_subprocess_run):
     mock_subprocess_run.return_value.stderr = ""
     assert cli.get_staged_diff() == "diff content"
 
-@patch('requests.post')
-def test_generate_commit_message(mock_requests_post):
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {"message": {"content": "feat: ollama commit"}}
-    mock_requests_post.return_value = mock_response
 
-    diff = "test diff"
-    model = "llama3"
-    endpoint = "http://localhost:11434/api"
-
-    message = cli.generate_commit_message(diff, model, endpoint)
-    assert message == "feat: ollama commit"
-
-    system_prompt = (
-        "You are an expert programmer tasked with writing a Git commit message. "
-        "Based on the following `git diff --staged` output, generate a commit message that follows the Conventional Commits specification. "
-        "The commit message must have a subject line of 50 characters or less, followed by a blank line, and then a more detailed explanatory body. "
-        "Do not include any introductory phrases, comments, or markdown formatting like ```. Your entire response should be only the raw commit message text."
-        "\n\nHere is an example of the desired format:\n"
-        "feat: add user authentication\n\n"
-        "Implement JWT-based authentication for the API.\n"
-        "Add login and registration endpoints.\n"
-        "Protect sensitive routes with an authentication middleware."
-    )
-    user_prompt = f"---\n\nGIT DIFF:\n{diff}"
-
-    mock_requests_post.assert_called_once_with(
-        f"{endpoint}/chat",
-        json={
-            "model": model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            "stream": False
-        },
-        timeout=60
-    )
 
 @patch.dict(os.environ, {}, clear=True)
 @patch('gai.cli.load_dotenv')
@@ -107,15 +69,18 @@ def test_main_interactive_input(mock_input, mock_requests_post, mock_thread, moc
         assert mock_input.call_count == 3
         
         system_prompt = (
-            "You are an expert programmer tasked with writing a Git commit message. "
-            "Based on the following `git diff --staged` output, generate a commit message that follows the Conventional Commits specification. "
-            "The commit message must have a subject line of 50 characters or less, followed by a blank line, and then a more detailed explanatory body. "
-            "Do not include any introductory phrases, comments, or markdown formatting like ```. Your entire response should be only the raw commit message text."
-            "\n\nHere is an example of the desired format:\n"
-            "feat: add user authentication\n\n"
-            "Implement JWT-based authentication for the API.\n"
-            "Add login and registration endpoints.\n"
-            "Protect sensitive routes with an authentication middleware."
+            "You are the best git assistant whose aim is to generate a git commit message."
+            "IT MUST BE written in English, be concise, be lowercase, relevant and straight to the point."
+            "IT MUST FOLLOW conventional commits specifications and the following template:"
+            "<type>[optional scope]: <short description>"
+           
+            "[optional body]"
+            
+            "Where <type> MUST BE ONE OF: fix, feat, build, chore, ci, docs, style, refactor, perf, test"
+            "Where <type> MUST NOT BE: add, update, delete etc."
+            "A commit that has a footer BREAKING CHANGE:, or appends a ! after the type, introduces a breaking API change."
+            "DO NOT ADD UNDER ANY CIRCUMSTANCES: explanation about the commit, details such as file, changes, hash or the conventional commits specs."
+            "Here is the git diff:"
         )
         user_prompt = f"---\n\nGIT DIFF:\ndiff content"
 
@@ -162,15 +127,18 @@ def test_main_env_vars_precedence(mock_input, mock_requests_post, mock_thread, m
         cli.main()
 
         system_prompt = (
-            "You are an expert programmer tasked with writing a Git commit message. "
-            "Based on the following `git diff --staged` output, generate a commit message that follows the Conventional Commits specification. "
-            "The commit message must have a subject line of 50 characters or less, followed by a blank line, and then a more detailed explanatory body. "
-            "Do not include any introductory phrases, comments, or markdown formatting like ```. Your entire response should be only the raw commit message text."
-            "\n\nHere is an example of the desired format:\n"
-            "feat: add user authentication\n\n"
-            "Implement JWT-based authentication for the API.\n"
-            "Add login and registration endpoints.\n"
-            "Protect sensitive routes with an authentication middleware."
+            "You are the best git assistant whose aim is to generate a git commit message."
+            "IT MUST BE written in English, be concise, be lowercase, relevant and straight to the point."
+            "IT MUST FOLLOW conventional commits specifications and the following template:"
+            "<type>[optional scope]: <short description>"
+           
+            "[optional body]"
+            
+            "Where <type> MUST BE ONE OF: fix, feat, build, chore, ci, docs, style, refactor, perf, test"
+            "Where <type> MUST NOT BE: add, update, delete etc."
+            "A commit that has a footer BREAKING CHANGE:, or appends a ! after the type, introduces a breaking API change."
+            "DO NOT ADD UNDER ANY CIRCUMSTANCES: explanation about the commit, details such as file, changes, hash or the conventional commits specs."
+            "Here is the git diff:"
         )
         user_prompt = f"---\n\nGIT DIFF:\ndiff content"
 
