@@ -1,0 +1,17 @@
+LICENSE
+README.md
+pyproject.toml
+src/gai/__init__.py
+src/gai/cli.py
+src/gai/ollama_client.py
+src/gai/openai_client.py
+src/gai/provider.py
+src/gai_commit.egg-info/PKG-INFO
+src/gai_commit.egg-info/SOURCES.txt
+src/gai_commit.egg-info/dependency_links.txt
+src/gai_commit.egg-info/entry_points.txt
+src/gai_commit.egg-info/requires.txt
+src/gai_commit.egg-info/top_level.txt
+tests/test_cli.py
+tests/test_ollama_client.py
+tests/test_openai_provider.py

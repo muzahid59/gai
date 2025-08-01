@@ -92,6 +92,8 @@ jobs:
     runs-on: ubuntu-latest
     if: (github.event_name == 'release' && github.event.action == 'published') || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'pypi')
     environment: pypi
+    permissions:
+      id-token: write  # Required for trusted publishing
     
     steps:
     - name: Download build artifacts
@@ -102,5 +104,3 @@ jobs:
     
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        password: ${{ secrets.PYPI_API_TOKEN }}

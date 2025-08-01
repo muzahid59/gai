@@ -1,0 +1,2 @@
+[console_scripts]
+gai = gai.cli:main

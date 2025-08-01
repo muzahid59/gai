@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "gai"
+name = "gai-commit"  # Changed to a more unique name
 version = "0.1.0"
 authors = [
     { name = "Muzahid", email = "mmsaddam@gmail.com" },
@@ -29,4 +29,4 @@ dependencies = [
 "Bug Tracker" = "https://github.com/muzahid59/gai/issues"
 
 [project.scripts]
-gai = "gai.cli:main"
+gai = "gai.cli:main"  # Keep the CLI command as 'gai'

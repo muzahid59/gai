@@ -1,3 +1,23 @@
+Metadata-Version: 2.4
+Name: gai-commit
+Version: 0.1.0
+Summary: An AI-powered git commit message generator.
+Author-email: Muzahid <mmsaddam@gmail.com>
+Project-URL: Homepage, https://github.com/muzahid59/gai
+Project-URL: Bug Tracker, https://github.com/muzahid59/gai/issues
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Topic :: Software Development :: Version Control :: Git
+Classifier: Topic :: Utilities
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: requests
+Requires-Dist: python-dotenv
+Requires-Dist: openai
+Dynamic: license-file
+
 # gai-commit
 
 An AI-powered git commit message generator that helps you create meaningful commit messages using AI.
