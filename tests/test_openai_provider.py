@@ -10,32 +10,54 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from gai.openai_client import OpenAIProvider
 
 @patch.dict(os.environ, {"OPENAI_API_KEY": "test_api_key"})
-@patch('openai.ChatCompletion.create')
-def test_openai_provider_generate_commit_message(mock_openai_create):
+@patch('gai.openai_client.OpenAI')
+def test_openai_provider_generate_commit_message(mock_openai_class):
+    # Mock the OpenAI client instance
+    mock_client = MagicMock()
+    mock_openai_class.return_value = mock_client
+    
+    # Mock the response structure for the new API
     mock_response = MagicMock()
-    mock_response.choices[0].message = {'content': 'feat: openai commit'}
-    mock_openai_create.return_value = mock_response
+    mock_response.choices[0].message.content = 'feat: openai commit'
+    mock_client.chat.completions.create.return_value = mock_response
 
     provider = OpenAIProvider()
     diff = "test diff"
-    message = provider.generate_commit_message(diff);
+    message = provider.generate_commit_message(diff)
 
     assert message == "feat: openai commit"
 
+    # Get the actual system prompt from the code
     system_prompt = (
-        "You are the best git assistant whose aim is to generate a git commit message."
-        "IT MUST BE written in English, be concise, be lowercase, relevant and straight to the point."
-        "IT MUST FOLLOW conventional commits specifications and the following template:"
-        "<type>[optional scope]: <short description>"
-        "Where <type> MUST BE ONE OF: fix, feat, build, chore, ci, docs, style, refactor, perf, test"
-        "Where <type> MUST NOT BE: add, update, delete etc."
-        "A commit that has a footer BREAKING CHANGE:, or appends a ! after the type, introduces a breaking API change."
-        "DO NOT ADD UNDER ANY CIRCUMSTANCES: explanation about the commit, details such as file, changes, hash or the conventional commits specs."
-        "Here is the git diff:"
+        "You are to act as an expert author of git commit messages. "
+        "Your mission is to create clean and comprehensive commit messages following the Conventional Commit specification. "
+        "You must explain WHAT the changes are and WHY they were made.\n\n"
+        
+        "I will provide you with the output of 'git diff --staged' and you must convert it into a proper commit message.\n\n"
+        
+        "**COMMIT FORMAT RULES:**\n"
+        "- Use ONLY these conventional commit keywords: fix, feat, build, chore, ci, docs, style, refactor, perf, test\n"
+        "- Format: <type>[optional scope]: <description>\n"
+        "- Use present tense (e.g., 'add feature' not 'added feature')\n"
+        "- Lines must not exceed 72 characters\n\n"
+        
+        "**OUTPUT REQUIREMENTS:**\n"
+        "- Your response MUST contain ONLY the raw commit message text\n"
+        "- NO introductory phrases like 'Here is the commit message:'\n"
+        "- NO markdown formatting or code blocks\n"
+        "- NO explanations or comments\n"
+        "- NO quotation marks around the message\n\n"
+        
+        "**EXAMPLE:**\n"
+        "feat: add user authentication system\n\n"
+        "Implement JWT-based authentication to secure API endpoints.\n"
+        "Add login and registration functionality with password hashing.\n"
+        "Include middleware for protecting sensitive routes."
     )
-    user_prompt = f"---\n\nGIT DIFF:\n{diff}"
+    user_prompt = f"Generate a commit message for this git diff:\n\n{diff}"
 
-    mock_openai_create.assert_called_once_with(
+    # Verify the OpenAI client was called correctly
+    mock_client.chat.completions.create.assert_called_once_with(
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": system_prompt},
