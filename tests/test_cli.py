@@ -37,10 +37,11 @@ def test_get_staged_diff(mock_subprocess_run):
 
 # Test for Ollama provider with interactive input
 @patch.dict(os.environ, {}, clear=True)
+@patch('gai.cli.load_dotenv')  # Prevent .env loading
 @patch('gai.cli.OllamaProvider')
 @patch('threading.Thread')
 @patch('builtins.input', side_effect=['test_model_input', 'http://input.endpoint', 'a'])
-def test_main_ollama_interactive(mock_input, mock_thread, mock_OllamaProvider):
+def test_main_ollama_interactive(mock_input, mock_thread, mock_OllamaProvider, mock_load_dotenv):
     # Mock subprocess calls for git
     mock_subprocess_run = MagicMock()
     def subprocess_side_effect(*args, **kwargs):
@@ -150,6 +151,47 @@ def test_main_openai_provider(mock_input, mock_thread, mock_OpenAIProvider):
         commit_call_found = False
         for call in mock_run.call_args_list:
             if call.args[0] == ['git', 'commit', '-m', 'feat: openai commit']:
+                commit_call_found = True
+                break
+        assert commit_call_found
+
+# Test for OpenAI provider with missing API key (interactive input)
+@patch.dict(os.environ, {}, clear=True)
+@patch('gai.cli.load_dotenv')  # Prevent .env loading
+@patch('gai.cli.save_api_key_to_env')
+@patch('gai.cli.OpenAIProvider')
+@patch('threading.Thread')
+@patch('builtins.input', side_effect=['sk-test-api-key', 'a'])  # API key input, then apply
+def test_main_openai_provider_interactive_api_key(mock_input, mock_thread, mock_OpenAIProvider, mock_save_api_key, mock_load_dotenv):
+    # Mock subprocess calls for git
+    mock_subprocess_run = MagicMock()
+    def subprocess_side_effect(*args, **kwargs):
+        if args[0] == ["git", "diff", "--staged"]:
+            result = MagicMock()
+            result.stdout = "diff content"
+            return result
+        elif args[0] and args[0][0] == "git" and args[0][1] == "commit":
+            return MagicMock()
+        return MagicMock()
+
+    # Mock the provider
+    mock_provider_instance = mock_OpenAIProvider.return_value
+    mock_provider_instance.generate_commit_message.return_value = "feat: openai interactive commit"
+
+    with patch('subprocess.run', side_effect=subprocess_side_effect) as mock_run:
+        # Run main with provider 'openai'
+        with patch.object(sys, 'argv', ['gai', '--provider', 'openai']):
+            cli.main()
+
+        # Assertions
+        mock_save_api_key.assert_called_once_with('sk-test-api-key')
+        mock_OpenAIProvider.assert_called_once()
+        mock_provider_instance.generate_commit_message.assert_called_once_with("diff content")
+        
+        # Check that commit was called
+        commit_call_found = False
+        for call in mock_run.call_args_list:
+            if call.args[0] == ['git', 'commit', '-m', 'feat: openai interactive commit']:
                 commit_call_found = True
                 break
         assert commit_call_found

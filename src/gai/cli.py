@@ -74,19 +74,52 @@ def spinner_animation(stop_event):
     sys.stdout.write("\r" + " " * 80 + "\r") # Clear the line
     sys.stdout.flush()
 
+def save_api_key_to_env(api_key):
+    """Save the OpenAI API key to the .env file."""
+    env_file = Path(".env")
+    
+    # Read existing .env content
+    env_content = ""
+    if env_file.exists():
+        with open(env_file, "r") as f:
+            env_content = f.read()
+    
+    # Check if OPENAI_API_KEY already exists
+    lines = env_content.split('\n')
+    updated = False
+    
+    for i, line in enumerate(lines):
+        if line.startswith('OPENAI_API_KEY=') or line.startswith('#OPENAI_API_KEY='):
+            lines[i] = f"OPENAI_API_KEY={api_key}"
+            updated = True
+            break
+    
+    # If not found, add it
+    if not updated:
+        if env_content and not env_content.endswith('\n'):
+            env_content += '\n'
+        lines.append(f"OPENAI_API_KEY={api_key}")
+    
+    # Write back to .env file
+    with open(env_file, "w") as f:
+        f.write('\n'.join(lines))
+    
+    print(f"\033[32m✔ API key saved to .env file\033[0m")
+
 def main():
     load_dotenv()
 
     parser = argparse.ArgumentParser(description="An AI-powered git commit message generator.")
     parser.add_argument("--provider", type=str, default=os.getenv("PROVIDER", DEFAULT_PROVIDER),
                         help=f"The provider to use for generating commit messages. Can be 'ollama' or 'openai'. Default: {DEFAULT_PROVIDER}")
+    parser.add_argument("model", nargs="?", help="The model to use for generating commit messages.")
     args = parser.parse_args()
 
     provider_name = args.provider
     provider: Provider
 
     if provider_name == "ollama":
-        model_to_use = os.getenv("MODEL")
+        model_to_use = args.model or os.getenv("MODEL")
         endpoint_to_use = os.getenv("CHAT_URL")
 
         if not model_to_use:
@@ -95,7 +128,17 @@ def main():
             endpoint_to_use = input(f"Enter LLM API endpoint (default: {DEFAULT_ENDPOINT}): ") or DEFAULT_ENDPOINT
         provider = OllamaProvider(model=model_to_use, endpoint=endpoint_to_use)
     elif provider_name == "openai":
-        provider = OpenAIProvider()
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            api_key = input("Enter your OpenAI API key: ").strip()
+            if not api_key:
+                print("OpenAI API key is required for the OpenAI provider.")
+                sys.exit(1)
+            # Save the API key to .env file for future use
+            save_api_key_to_env(api_key)
+            # Set the environment variable for this session
+            os.environ["OPENAI_API_KEY"] = api_key
+        provider = OpenAIProvider(model=args.model)
     else:
         print(f"Invalid provider: {provider_name}. Please choose 'ollama' or 'openai'.")
         sys.exit(1)
