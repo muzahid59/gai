@@ -1,66 +1,57 @@
 # `gai` - AI-Powered Git Assistant
 
-`gai` is a command-line tool that uses the power of Large Language Models (LLMs) to help you write meaningful and well-formatted git commit messages.
-
-It analyzes your staged changes, generates a conventional commit message, and asks for your approval before committing.
+`gai` is a command-line tool that uses Large Language Models to generate meaningful, well-formatted git commit messages following the Conventional Commits specification.
 
 ## Features
 
-- **AI-Generated Commit Messages:** Automatically generates commit messages based on your staged changes.
-- **Conventional Commits:** Enforces the Conventional Commits specification for clean and readable git history.
-- **Interactive Workflow:** You can apply, edit, or re-generate the suggested commit message.
-- **Local LLM Support:** Works with your own local Ollama instance for privacy and control.
-- **Configurable:** Set your preferred Ollama model once and forget it.
+- **AI-Generated Commit Messages:** Automatically generates commit messages based on your staged changes
+- **Conventional Commits:** Enforces clean and readable git history
+- **Interactive Workflow:** Apply, edit, or re-generate suggested messages
+- **Multiple AI Providers:** Supports both Ollama (local) and OpenAI (cloud)
 
 ## Installation
 
-It is recommended to install `gai` in a virtual environment to avoid conflicts with other packages.
-
 ```bash
 python -m venv .venv
-source .venv/bin/activate  # On Windows use `.venv\Scripts\activate`
-pip install gai
+source .venv/bin/activate  # On Windows: `.venv\Scripts\activate`
+pip install gai .
 ```
 
 ## Configuration
 
-`gai` can be configured using a `.env` file in the project root. You can copy the example file to get started:
-
-```bash
-cp .env.example .env
-```
-
-The `.env` file has the following variables:
+Create a `.env` file in your project root:
 
 ```dotenv
-# The Ollama model to use for generating commit messages (e.g., llama3, codegemma)
+# Choose provider: 'ollama' or 'openai'
+PROVIDER=ollama
+
+# For Ollama (local)
 MODEL=llama3.2
-
-# The URL of the Ollama API endpoint
 CHAT_URL=http://localhost:11434/api
-```
 
-If these variables are not set in the `.env` file or as environment variables, `gai` will prompt you for the values interactively.
+# For OpenAI (cloud)
+# PROVIDER=openai
+# API_KEY=your_api_key_here
+```
 
 ## Usage
 
-1.  Make your code changes.
-2.  Stage your changes as you normally would:
-    ```bash
-    git add .
-    ```
-3.  Run `gai`:
-    ```bash
-    gai
-    ```
+1. Stage your changes: `git add .`
+2. Run: `gai`
+3. Choose: **[A]**pply, **[E]**dit, **[R]**e-generate, or **[Q]**uit
 
-The tool will analyze your changes, generate a commit message, and present it to you with the following options:
+## Command Line Options
 
-- **[A]pply:** Commit the changes with the suggested message.
-- **[E]dit:** Open the message in your default text editor for you to modify before committing.
-- **[R]e-generate:** Request a new commit message from the LLM.
-- **[Q]uit:** Abort the commit process.
+```bash
+gai --provider ollama    # Override provider
+gai --provider openai    # Use OpenAI instead of default
+```
+
+## Requirements
+
+- **For Ollama:** Install and run [Ollama](https://ollama.ai) locally
+- **For OpenAI:** Valid API key with available credits
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) file for details.
