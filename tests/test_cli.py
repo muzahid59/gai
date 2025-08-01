@@ -12,9 +12,9 @@ from gai import cli
 @pytest.fixture(autouse=True)
 def cleanup_env_vars():
     # Store original environment variables
-    original_env = {k: os.environ[k] for k in os.environ if k in ["MODEL", "CHAT_URL", "PROVIDER", "OPENAI_API_KEY"]}
+    original_env = {k: os.environ[k] for k in os.environ if k in ["MODEL", "CHAT_URL", "PROVIDER", "API_KEY"]}
     # Clear the environment variables for the test
-    for k in ["MODEL", "CHAT_URL", "PROVIDER", "OPENAI_API_KEY"]:
+    for k in ["MODEL", "CHAT_URL", "PROVIDER", "API_KEY"]:
         if k in os.environ:
             del os.environ[k]
 
@@ -24,7 +24,7 @@ def cleanup_env_vars():
     for k in original_env:
         os.environ[k] = original_env[k]
     # Clean up any variables set during the test that were not originally present
-    for k in ["MODEL", "CHAT_URL", "PROVIDER", "OPENAI_API_KEY"]:
+    for k in ["MODEL", "CHAT_URL", "PROVIDER", "API_KEY"]:
         if k in os.environ and k not in original_env:
             del os.environ[k]
 
@@ -118,7 +118,7 @@ def test_main_ollama_env_vars(mock_input, mock_thread, mock_OllamaProvider):
         assert commit_call_found
 
 # Test for OpenAI provider
-@patch.dict(os.environ, {"OPENAI_API_KEY": "fake-key"}, clear=True)
+@patch.dict(os.environ, {"API_KEY": "fake-key"}, clear=True)
 @patch('gai.cli.OpenAIProvider')
 @patch('threading.Thread')
 @patch('builtins.input', return_value='a') # User chooses to apply

@@ -84,13 +84,13 @@ def save_api_key_to_env(api_key):
         with open(env_file, "r") as f:
             env_content = f.read()
     
-    # Check if OPENAI_API_KEY already exists
+    # Check if API_KEY already exists
     lines = env_content.split('\n')
     updated = False
     
     for i, line in enumerate(lines):
-        if line.startswith('OPENAI_API_KEY=') or line.startswith('#OPENAI_API_KEY='):
-            lines[i] = f"OPENAI_API_KEY={api_key}"
+        if line.startswith('API_KEY=') or line.startswith('#API_KEY='):
+            lines[i] = f"API_KEY={api_key}"
             updated = True
             break
     
@@ -98,7 +98,7 @@ def save_api_key_to_env(api_key):
     if not updated:
         if env_content and not env_content.endswith('\n'):
             env_content += '\n'
-        lines.append(f"OPENAI_API_KEY={api_key}")
+        lines.append(f"API_KEY={api_key}")
     
     # Write back to .env file
     with open(env_file, "w") as f:
@@ -128,7 +128,7 @@ def main():
             endpoint_to_use = input(f"Enter LLM API endpoint (default: {DEFAULT_ENDPOINT}): ") or DEFAULT_ENDPOINT
         provider = OllamaProvider(model=model_to_use, endpoint=endpoint_to_use)
     elif provider_name == "openai":
-        api_key = os.getenv("OPENAI_API_KEY")
+        api_key = os.getenv("API_KEY")
         if not api_key:
             api_key = input("Enter your OpenAI API key: ").strip()
             if not api_key:
@@ -137,7 +137,7 @@ def main():
             # Save the API key to .env file for future use
             save_api_key_to_env(api_key)
             # Set the environment variable for this session
-            os.environ["OPENAI_API_KEY"] = api_key
+            os.environ["API_KEY"] = api_key
         provider = OpenAIProvider(model=args.model)
     else:
         print(f"Invalid provider: {provider_name}. Please choose 'ollama' or 'openai'.")

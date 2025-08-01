@@ -7,9 +7,9 @@ DEFAULT_OPENAI_MODEL = "gpt-3.5-turbo"
 class OpenAIProvider(Provider):
     def __init__(self, model=None):
         self.model = model or os.getenv("MODEL") or DEFAULT_OPENAI_MODEL
-        self.api_key = os.getenv("OPENAI_API_KEY")
+        self.api_key = os.getenv("API_KEY")
         if not self.api_key:
-            raise ValueError("OPENAI_API_KEY environment variable not set.")
+            raise ValueError("API_KEY environment variable not set.")
         self.client = OpenAI(api_key=self.api_key)
 
     def generate_commit_message(self, diff):
