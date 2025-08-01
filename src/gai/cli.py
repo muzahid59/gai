@@ -15,6 +15,23 @@ DEFAULT_MODEL = "llama3.2"
 DEFAULT_ENDPOINT = "http://localhost:11434/api"
 DEFAULT_PROVIDER = "ollama"
 
+def is_git_repository():
+    """Checks if the current directory or any parent directory is a Git repository."""
+    try:
+        # This command will succeed if in a git repo, fail otherwise
+        subprocess.run(
+            ["git", "rev-parse", "--is-inside-work-tree"],
+            capture_output=True,
+            check=True,
+            text=True
+        )
+        return True
+    except subprocess.CalledProcessError:
+        return False
+    except FileNotFoundError:
+        # Git command not found, assume not a git repository for this check
+        return False
+
 def get_staged_diff():
     """Runs 'git diff --staged' and returns the output."""
     try:
@@ -108,6 +125,10 @@ def save_api_key_to_env(api_key):
 
 def main():
     load_dotenv()
+
+    if not is_git_repository():
+        print("\033[31mError: Not a Git repository. Please initialize a Git repository or navigate to one.\033[0m")
+        sys.exit(1)
 
     parser = argparse.ArgumentParser(description="An AI-powered git commit message generator.")
     parser.add_argument("--provider", type=str, default=os.getenv("PROVIDER", DEFAULT_PROVIDER),

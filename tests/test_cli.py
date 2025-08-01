@@ -155,6 +155,22 @@ def test_main_openai_provider(mock_input, mock_thread, mock_OpenAIProvider):
                 break
         assert commit_call_found
 
+@patch('gai.cli.is_git_repository')
+@patch('builtins.print') # Capture print calls for error messages
+@patch('gai.cli.load_dotenv')
+@patch('gai.cli.get_staged_diff', return_value="diff content")
+@patch('gai.cli.OllamaProvider')
+@patch('threading.Thread')
+@patch('builtins.input', return_value='q') # Quit immediately
+def test_main_exits_if_not_git_repo(mock_input, mock_thread, mock_OllamaProvider, mock_get_staged_diff, mock_load_dotenv, mock_print, mock_is_git_repository):
+    mock_is_git_repository.return_value = False
+    with patch.object(sys, 'argv', ['gai']):
+        with pytest.raises(SystemExit) as pytest_wrapped_e:
+            cli.main()
+        assert pytest_wrapped_e.type == SystemExit
+        assert pytest_wrapped_e.value.code == 1
+    mock_print.assert_called_once_with("\033[31mError: Not a Git repository. Please initialize a Git repository or navigate to one.\033[0m")
+
 # Test for OpenAI provider with missing API key (interactive input)
 @patch.dict(os.environ, {}, clear=True)
 @patch('gai.cli.load_dotenv')  # Prevent .env loading
