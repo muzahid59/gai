@@ -24,7 +24,14 @@ class OpenAIProvider(Provider):
             "- Use ONLY these conventional commit keywords: fix, feat, build, chore, ci, docs, style, refactor, perf, test\n"
             "- Format: <type>[optional scope]: <description>\n"
             "- Use present tense (e.g., 'add feature' not 'added feature')\n"
-            "- Lines must not exceed 72 characters\n\n"
+            "- Keep subject line under 50 characters\n"
+            "- Lines in body must not exceed 72 characters\n\n"
+
+            "**BODY FORMAT (for multiple changes):**\n"
+            "- Use bullet points (- ) for multiple changes\n"
+            "- Each bullet point should be concise and specific\n"
+            "- Start each bullet with a verb (add, fix, update, remove, etc.)\n"
+            "- Focus on WHAT changed, not HOW it was implemented\n\n"
 
             "**OUTPUT REQUIREMENTS:**\n"
             "- Your response MUST contain ONLY the raw commit message text\n"
@@ -33,11 +40,16 @@ class OpenAIProvider(Provider):
             "- NO explanations or comments\n"
             "- NO quotation marks around the message\n\n"
 
-            "**EXAMPLE:**\n"
+            "**EXAMPLES:**\n"
             "feat: add user authentication system\n\n"
-            "Implement JWT-based authentication to secure API endpoints.\n"
-            "Add login and registration functionality with password hashing.\n"
-            "Include middleware for protecting sensitive routes."
+            "- Implement JWT-based authentication for API security\n"
+            "- Add login and registration with password hashing\n"
+            "- Include middleware for protecting sensitive routes\n\n"
+
+            "fix: resolve database connection issues\n\n"
+            "- Fix connection pool timeout configuration\n"
+            "- Add retry logic for failed database queries\n"
+            "- Update error handling for connection failures"
         )
 
         user_prompt = f"Generate a commit message for this git diff:\n\n{diff}"
