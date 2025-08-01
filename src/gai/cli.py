@@ -101,6 +101,38 @@ def clean_commit_message(message):
     cleaned = cleaned.strip()
     return cleaned
 
+def save_model_to_env(model):
+    """Save the Ollama model to the .env file."""
+    env_file = Path(".env")
+    
+    # Read existing .env content
+    env_content = ""
+    if env_file.exists():
+        with open(env_file, "r") as f:
+            env_content = f.read()
+    
+    # Check if MODEL already exists
+    lines = env_content.split('\n')
+    updated = False
+    
+    for i, line in enumerate(lines):
+        if line.startswith('MODEL=') or line.startswith('#MODEL='):
+            lines[i] = f"MODEL={model}"
+            updated = True
+            break
+    
+    # If not found, add it
+    if not updated:
+        if env_content and not env_content.endswith('\n'):
+            env_content += '\n'
+        lines.append(f"MODEL={model}")
+    
+    # Write back to .env file
+    with open(env_file, "w") as f:
+        f.write('\n'.join(lines))
+    
+    print(f"\033[32m✔ Model '{model}' saved to .env file\033[0m")
+
 def save_api_key_to_env(api_key):
     """Save the OpenAI API key to the .env file."""
     env_file = Path(".env")
@@ -150,11 +182,20 @@ def main():
     provider: Provider
 
     if provider_name == "ollama":
-        model_to_use = args.model or os.getenv("MODEL")
+        # Always ask for model, but show the saved one as default
+        saved_model = os.getenv("MODEL") if not args.model else None
+        default_model = saved_model or DEFAULT_MODEL
+        
+        if args.model:
+            # Model provided as command line argument
+            model_to_use = args.model
+        else:
+            # Always prompt for model, showing saved one as default
+            model_to_use = input(f"Enter LLM model (default: {default_model}): ") or default_model
+            # Save the chosen model for future use
+            save_model_to_env(model_to_use)
+        
         endpoint_to_use = os.getenv("CHAT_URL")
-
-        if not model_to_use:
-            model_to_use = input(f"Enter LLM model (default: {DEFAULT_MODEL}): ") or DEFAULT_MODEL
         if not endpoint_to_use:
             endpoint_to_use = input(f"Enter LLM API endpoint (default: {DEFAULT_ENDPOINT}): ") or DEFAULT_ENDPOINT
         provider = OllamaProvider(model=model_to_use, endpoint=endpoint_to_use)
