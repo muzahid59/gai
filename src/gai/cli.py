@@ -101,6 +101,46 @@ def clean_commit_message(message):
     cleaned = cleaned.strip()
     return cleaned
 
+def save_provider_model_pair(provider, model):
+    """Save the provider-model pair to the .env file."""
+    env_file = Path(".env")
+    
+    # Read existing .env content
+    env_content = ""
+    if env_file.exists():
+        with open(env_file, "r") as f:
+            env_content = f.read()
+    
+    # Check if PROVIDER and MODEL already exist
+    lines = env_content.split('\n')
+    provider_updated = False
+    model_updated = False
+    
+    for i, line in enumerate(lines):
+        if line.startswith('PROVIDER=') or line.startswith('#PROVIDER='):
+            lines[i] = f"PROVIDER={provider}"
+            provider_updated = True
+        elif line.startswith('MODEL=') or line.startswith('#MODEL='):
+            lines[i] = f"MODEL={model}"
+            model_updated = True
+    
+    # Add missing entries
+    if not provider_updated:
+        if env_content and not env_content.endswith('\n'):
+            env_content += '\n'
+        lines.append(f"PROVIDER={provider}")
+    
+    if not model_updated:
+        if env_content and not env_content.endswith('\n'):
+            env_content += '\n'
+        lines.append(f"MODEL={model}")
+    
+    # Write back to .env file
+    with open(env_file, "w") as f:
+        f.write('\n'.join(lines))
+    
+    print(f"\033[32m✔ Provider '{provider}' with model '{model}' saved to .env file\033[0m")
+
 def save_model_to_env(model):
     """Save the Ollama model to the .env file."""
     env_file = Path(".env")
@@ -182,24 +222,23 @@ def main():
     provider: Provider
 
     if provider_name == "ollama":
-        # Always ask for model, but show the saved one as default
-        saved_model = os.getenv("MODEL") if not args.model else None
-        default_model = saved_model or DEFAULT_MODEL
-        
         if args.model:
-            # Model provided as command line argument
+            # Model provided as command line argument - save the pair
             model_to_use = args.model
+            save_provider_model_pair(provider_name, model_to_use)
         else:
-            # Always prompt for model, showing saved one as default
-            model_to_use = input(f"Enter LLM model (default: {default_model}): ") or default_model
-            # Save the chosen model for future use
-            save_model_to_env(model_to_use)
+            # No model provided - use default and save the pair
+            model_to_use = DEFAULT_MODEL
+            save_provider_model_pair(provider_name, model_to_use)
         
         endpoint_to_use = os.getenv("CHAT_URL")
         if not endpoint_to_use:
             endpoint_to_use = input(f"Enter LLM API endpoint (default: {DEFAULT_ENDPOINT}): ") or DEFAULT_ENDPOINT
         provider = OllamaProvider(model=model_to_use, endpoint=endpoint_to_use)
     elif provider_name == "openai":
+        # Get OpenAI default model
+        from gai.openai_client import DEFAULT_OPENAI_MODEL
+        
         api_key = os.getenv("API_KEY")
         if not api_key:
             api_key = input("Enter your OpenAI API key: ").strip()
@@ -210,7 +249,17 @@ def main():
             save_api_key_to_env(api_key)
             # Set the environment variable for this session
             os.environ["API_KEY"] = api_key
-        provider = OpenAIProvider(model=args.model)
+        
+        if args.model:
+            # Model provided as command line argument - save the pair
+            model_to_use = args.model
+            save_provider_model_pair(provider_name, model_to_use)
+        else:
+            # No model provided - use default and save the pair
+            model_to_use = DEFAULT_OPENAI_MODEL
+            save_provider_model_pair(provider_name, model_to_use)
+            
+        provider = OpenAIProvider(model=model_to_use)
     else:
         print(f"Invalid provider: {provider_name}. Please choose 'ollama' or 'openai'.")
         sys.exit(1)
