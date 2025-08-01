@@ -35,6 +35,40 @@ def test_get_staged_diff(mock_subprocess_run):
     mock_subprocess_run.return_value.stderr = ""
     assert cli.get_staged_diff() == "diff content"
 
+def test_clean_commit_message():
+    # Test removing <think></think> tags
+    message_with_think = """<think>
+This is thinking content that should be removed.
+Multiple lines of thinking.
+</think>
+
+feat(repository-check): add git repository validation
+
+added check for git repository status"""
+    
+    expected = """feat(repository-check): add git repository validation
+
+added check for git repository status"""
+    
+    assert cli.clean_commit_message(message_with_think) == expected
+    
+    # Test message without think tags (should remain unchanged)
+    clean_message = "feat: add new feature\n\nThis is a normal commit message"
+    assert cli.clean_commit_message(clean_message) == clean_message
+    
+    # Test multiple think blocks
+    multiple_thinks = """<think>First think block</think>
+feat: test commit
+<think>Second think block</think>
+
+This is the description"""
+    
+    expected_multiple = """feat: test commit
+
+This is the description"""
+    
+    assert cli.clean_commit_message(multiple_thinks) == expected_multiple
+
 # Test for Ollama provider with interactive input
 @patch.dict(os.environ, {}, clear=True)
 @patch('gai.cli.load_dotenv')  # Prevent .env loading

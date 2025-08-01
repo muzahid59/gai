@@ -91,6 +91,16 @@ def spinner_animation(stop_event):
     sys.stdout.write("\r" + " " * 80 + "\r") # Clear the line
     sys.stdout.flush()
 
+def clean_commit_message(message):
+    """Remove <think></think> tags and any content within them from the commit message."""
+    import re
+    # Remove <think>...</think> blocks (including multiline)
+    cleaned = re.sub(r'<think>.*?</think>', '', message, flags=re.DOTALL)
+    # Clean up excessive whitespace only around where think tags were removed
+    cleaned = re.sub(r'\n\s*\n\s*\n', '\n\n', cleaned)  # Replace 3+ newlines with 2
+    cleaned = cleaned.strip()
+    return cleaned
+
 def save_api_key_to_env(api_key):
     """Save the OpenAI API key to the .env file."""
     env_file = Path(".env")
@@ -175,6 +185,8 @@ def main():
 
     try:
         suggested_message = provider.generate_commit_message(staged_diff)
+        # Clean up any <think></think> tags from the message
+        suggested_message = clean_commit_message(suggested_message)
     finally:
         stop_spinner.set()
         spinner_thread.join()
@@ -203,6 +215,8 @@ def main():
             spinner_thread.start()
             try:
                 suggested_message = provider.generate_commit_message(staged_diff)
+                # Clean up any <think></think> tags from the message
+                suggested_message = clean_commit_message(suggested_message)
             finally:
                 stop_spinner.set()
                 spinner_thread.join()
