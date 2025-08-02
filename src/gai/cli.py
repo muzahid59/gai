@@ -1,309 +1,47 @@
-import subprocess
 import argparse
 import sys
 import os
-from pathlib import Path
-from dotenv import load_dotenv
-import time
 import threading
-import re
+from dotenv import load_dotenv
+
 from gai.provider import Provider
 from gai.ollama_client import OllamaProvider
 from gai.openai_client import OpenAIProvider
+from gai.utils import (
+    is_git_repository,
+    get_staged_diff,
+    commit,
+    edit_message,
+    spinner_animation,
+    clean_commit_message,
+    detect_credentials,
+    prompt_credential_warning,
+    save_provider_model_pair,
+    save_api_key_to_env
+)
 
-# --- Configuration ---
+# Configuration
 DEFAULT_MODEL = "llama3.2"
 DEFAULT_ENDPOINT = "http://localhost:11434/api"
 DEFAULT_PROVIDER = "ollama"
 
-def is_git_repository():
-    """Checks if the current directory or any parent directory is a Git repository."""
-    try:
-        # This command will succeed if in a git repo, fail otherwise
-        subprocess.run(
-            ["git", "rev-parse", "--is-inside-work-tree"],
-            capture_output=True,
-            check=True,
-            text=True
-        )
-        return True
-    except subprocess.CalledProcessError:
-        return False
-    except FileNotFoundError:
-        # Git command not found, assume not a git repository for this check
-        return False
-
-def get_staged_diff():
-    """Runs 'git diff --staged' and returns the output."""
-    try:
-        result = subprocess.run(
-            ["git", "diff", "--staged"],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        return result.stdout
-    except FileNotFoundError:
-        print("\033[31mError: 'git' command not found.\033[0m\n"
-              "Please ensure Git is installed and accessible in your system's PATH.")
-        sys.exit(1)
-    except subprocess.CalledProcessError as e:
-        if e.returncode == 1 and not e.stdout and not e.stderr:
-            # This can be normal if there are no staged changes but it's not an error
-            return ""
-        print(f"""\u001b[31mError getting git diff:\u001b[0m {e.stderr.strip()}
-              Please ensure you have staged changes (e.g., using 'git add .') and Git is configured correctly.""")
-        sys.exit(1)
-
-def commit(message):
-    """Performs the git commit with the given message."""
-    try:
-        subprocess.run(["git", "commit", "-m", message], check=True)
-        print("\033[32m✔ Commit successful!\033[0m")
-    except subprocess.CalledProcessError as e:
-        print(f"Error during commit: {e.stderr}")
-        sys.exit(1)
-
-def edit_message(message):
-    """Opens the default editor to edit the message."""
-    editor = os.getenv("EDITOR", "vim")
-    try:
-        # Use a temporary file in the .git directory for the message
-        commit_msg_file = Path(subprocess.check_output(["git", "rev-parse", "--git-dir"]).strip().decode()) / "COMMIT_EDITMSG"
-        with open(commit_msg_file, "w") as f:
-            f.write(message)
-        
-        subprocess.run([editor, str(commit_msg_file)], check=True)
-
-        with open(commit_msg_file, "r") as f:
-            return f.read().strip()
-    except Exception as e:
-        print(f"Error opening editor: {e}")
-        return None
-
-def spinner_animation(stop_event):
-    """Displays a spinner animation."""
-    spinner_chars = "|/-\\"
-    while not stop_event.is_set():
-        for char in spinner_chars:
-            sys.stdout.write(f"\r\033[1;34m\u001b[0m Contacting provider to generate commit message... {char}")
-            sys.stdout.flush()
-            time.sleep(0.1)
-    sys.stdout.write("\r" + " " * 80 + "\r") # Clear the line
-    sys.stdout.flush()
-
-def clean_commit_message(message):
-    """Remove <think></think> tags and any content within them from the commit message."""
-    import re
-    # Remove <think>...</think> blocks (including multiline)
-    cleaned = re.sub(r'<think>.*?</think>', '', message, flags=re.DOTALL)
-    # Clean up excessive whitespace only around where think tags were removed
-    cleaned = re.sub(r'\n\s*\n\s*\n', '\n\n', cleaned)  # Replace 3+ newlines with 2
-    cleaned = cleaned.strip()
-    return cleaned
-
-def detect_credentials(diff_content):
-    """Detect potential credentials in the git diff and return a list of warnings."""
-    warnings = []
-    
-    # Common credential patterns
-    patterns = {
-        'API Keys': [
-            r'(?i)(api[_-]?key|apikey)\s*[:=]\s*[\'"][a-zA-Z0-9_-]{20,}[\'"]',
-            r'(?i)(secret[_-]?key|secretkey)\s*[:=]\s*[\'"][a-zA-Z0-9_-]{20,}[\'"]',
-            r'sk-[a-zA-Z0-9]{48}',  # OpenAI API key pattern
-        ],
-        'Passwords': [
-            r'(?i)(password|passwd|pwd)\s*[:=]\s*[\'"][^\'"\s]{8,}[\'"]',
-        ],
-        'Database URLs': [
-            r'(?i)(database[_-]?url|db[_-]?url)\s*[:=]\s*[\'"][^\'"\s]+[\'"]',
-            r'(?i)(mongodb|mysql|postgresql|postgres)://[^\'"\s]+',
-        ],
-        'Private Keys': [
-            r'-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----',
-            r'-----BEGIN\s+OPENSSH\s+PRIVATE\s+KEY-----',
-        ],
-        'Tokens': [
-            r'(?i)(access[_-]?token|auth[_-]?token|bearer[_-]?token)\s*[:=]\s*[\'"][a-zA-Z0-9_-]{20,}[\'"]',
-            r'(?i)(jwt[_-]?token|refresh[_-]?token)\s*[:=]\s*[\'"][a-zA-Z0-9._-]{20,}[\'"]',
-        ],
-        'AWS Credentials': [
-            r'AKIA[0-9A-Z]{16}',  # AWS Access Key
-            r'(?i)(aws[_-]?secret[_-]?access[_-]?key)\s*[:=]\s*[\'"][a-zA-Z0-9/+=]{40}[\'"]',
-        ],
-        'Environment Variables': [
-            r'(?i)(secret|key|token|password|pwd|pass)\s*[:=]\s*[\'"][^\'"\s]{8,}[\'"]',
-        ]
-    }
-    
-    # Check each line that's being added (starts with +)
-    added_lines = [line[1:] for line in diff_content.split('\n') if line.startswith('+') and not line.startswith('+++')]
-    
-    for line in added_lines:
-        for category, pattern_list in patterns.items():
-            for pattern in pattern_list:
-                if re.search(pattern, line):
-                    warnings.append(f"Potential {category.lower()} detected in line: {line.strip()}")
-                    break  # Only report once per line per category
-    
-    return warnings
-
-def prompt_credential_warning(warnings):
-    """Display credential warnings and ask user if they want to continue."""
-    print("\n\033[1;31m⚠️  SECURITY WARNING ⚠️\033[0m")
-    print("\033[33mPotential credentials or sensitive information detected:\033[0m\n")
-    
-    for warning in warnings:
-        print(f"  • {warning}")
-    
-    print("\n\033[1;33mThis could expose sensitive information in your commit history!\033[0m")
-    
-    while True:
-        choice = input("\nDo you want to continue anyway? \033[1m[Y]\u001b[0mes/\033[1m[N]\u001b[0mo (y/n): ").lower().strip()
-        if choice in ['y', 'yes']:
-            return True
-        elif choice in ['n', 'no']:
-            return False
-        else:
-            print("Please enter 'y' for yes or 'n' for no.")
-
-def save_provider_model_pair(provider, model):
-    """Save the provider-model pair to the .env file."""
-    env_file = Path(".env")
-    
-    # Read existing .env content
-    env_content = ""
-    if env_file.exists():
-        with open(env_file, "r") as f:
-            env_content = f.read()
-    
-    # Check if PROVIDER and MODEL already exist
-    lines = env_content.split('\n')
-    provider_updated = False
-    model_updated = False
-    
-    for i, line in enumerate(lines):
-        if line.startswith('PROVIDER=') or line.startswith('#PROVIDER='):
-            lines[i] = f"PROVIDER={provider}"
-            provider_updated = True
-        elif line.startswith('MODEL=') or line.startswith('#MODEL='):
-            lines[i] = f"MODEL={model}"
-            model_updated = True
-    
-    # Add missing entries
-    if not provider_updated:
-        if env_content and not env_content.endswith('\n'):
-            env_content += '\n'
-        lines.append(f"PROVIDER={provider}")
-    
-    if not model_updated:
-        if env_content and not env_content.endswith('\n'):
-            env_content += '\n'
-        lines.append(f"MODEL={model}")
-    
-    # Write back to .env file
-    with open(env_file, "w") as f:
-        f.write('\n'.join(lines))
-    
-    print(f"\033[32m✔ Provider '{provider}' with model '{model}' saved to .env file\033[0m")
-
-def save_model_to_env(model):
-    """Save the Ollama model to the .env file."""
-    env_file = Path(".env")
-    
-    # Read existing .env content
-    env_content = ""
-    if env_file.exists():
-        with open(env_file, "r") as f:
-            env_content = f.read()
-    
-    # Check if MODEL already exists
-    lines = env_content.split('\n')
-    updated = False
-    
-    for i, line in enumerate(lines):
-        if line.startswith('MODEL=') or line.startswith('#MODEL='):
-            lines[i] = f"MODEL={model}"
-            updated = True
-            break
-    
-    # If not found, add it
-    if not updated:
-        if env_content and not env_content.endswith('\n'):
-            env_content += '\n'
-        lines.append(f"MODEL={model}")
-    
-    # Write back to .env file
-    with open(env_file, "w") as f:
-        f.write('\n'.join(lines))
-    
-    print(f"\033[32m✔ Model '{model}' saved to .env file\033[0m")
-
-def save_api_key_to_env(api_key):
-    """Save the OpenAI API key to the .env file."""
-    env_file = Path(".env")
-    
-    # Read existing .env content
-    env_content = ""
-    if env_file.exists():
-        with open(env_file, "r") as f:
-            env_content = f.read()
-    
-    # Check if API_KEY already exists
-    lines = env_content.split('\n')
-    updated = False
-    
-    for i, line in enumerate(lines):
-        if line.startswith('API_KEY=') or line.startswith('#API_KEY='):
-            lines[i] = f"API_KEY={api_key}"
-            updated = True
-            break
-    
-    # If not found, add it
-    if not updated:
-        if env_content and not env_content.endswith('\n'):
-            env_content += '\n'
-        lines.append(f"API_KEY={api_key}")
-    
-    # Write back to .env file
-    with open(env_file, "w") as f:
-        f.write('\n'.join(lines))
-    
-    print(f"\033[32m✔ API key saved to .env file\033[0m")
-
-def main():
-    load_dotenv()
-
-    if not is_git_repository():
-        print("\033[31mError: Not a Git repository. Please initialize a Git repository or navigate to one.\033[0m")
-        sys.exit(1)
-
-    parser = argparse.ArgumentParser(description="An AI-powered git commit message generator.")
-    parser.add_argument("--provider", type=str, default=os.getenv("PROVIDER", DEFAULT_PROVIDER),
-                        help=f"The provider to use for generating commit messages. Can be 'ollama' or 'openai'. Default: {DEFAULT_PROVIDER}")
-    parser.add_argument("model", nargs="?", help="The model to use for generating commit messages.")
-    args = parser.parse_args()
-
-    provider_name = args.provider
-    provider: Provider
-
+def setup_provider(provider_name: str, model: str) -> Provider:
+    """Setup and return the appropriate provider."""
     if provider_name == "ollama":
-        if args.model:
-            # Model provided as command line argument - save the pair
-            model_to_use = args.model
-            save_provider_model_pair(provider_name, model_to_use)
+        if model:
+            save_provider_model_pair(provider_name, model)
+            model_to_use = model
         else:
-            # No model provided - use default and save the pair
             model_to_use = DEFAULT_MODEL
             save_provider_model_pair(provider_name, model_to_use)
         
         endpoint_to_use = os.getenv("CHAT_URL")
         if not endpoint_to_use:
             endpoint_to_use = input(f"Enter LLM API endpoint (default: {DEFAULT_ENDPOINT}): ") or DEFAULT_ENDPOINT
-        provider = OllamaProvider(model=model_to_use, endpoint=endpoint_to_use)
+        
+        return OllamaProvider(model=model_to_use, endpoint=endpoint_to_use)
+    
     elif provider_name == "openai":
-        # Get OpenAI default model
         from gai.openai_client import DEFAULT_OPENAI_MODEL
         
         api_key = os.getenv("API_KEY")
@@ -312,49 +50,87 @@ def main():
             if not api_key:
                 print("OpenAI API key is required for the OpenAI provider.")
                 sys.exit(1)
-            # Save the API key to .env file for future use
             save_api_key_to_env(api_key)
-            # Set the environment variable for this session
             os.environ["API_KEY"] = api_key
         
-        if args.model:
-            # Model provided as command line argument - save the pair
-            model_to_use = args.model
-            save_provider_model_pair(provider_name, model_to_use)
+        if model:
+            save_provider_model_pair(provider_name, model)
+            model_to_use = model
         else:
-            # No model provided - use default and save the pair
             model_to_use = DEFAULT_OPENAI_MODEL
             save_provider_model_pair(provider_name, model_to_use)
-            
-        provider = OpenAIProvider(model=model_to_use)
+        
+        return OpenAIProvider(model=model_to_use)
+    
     else:
         print(f"Invalid provider: {provider_name}. Please choose 'ollama' or 'openai'.")
         sys.exit(1)
 
-    staged_diff = get_staged_diff()
-    if not staged_diff:
-        print("No staged changes found. Please stage your changes with 'git add' first.")
-        sys.exit(0)
-
-    # Check for potential credentials in the diff
-    credential_warnings = detect_credentials(staged_diff)
-    if credential_warnings:
-        if not prompt_credential_warning(credential_warnings):
-            print("Commit aborted for security reasons.")
-            sys.exit(0)
-
+def generate_commit_message(provider: Provider, staged_diff: str) -> str:
+    """Generate commit message with spinner."""
     stop_spinner = threading.Event()
     spinner_thread = threading.Thread(target=spinner_animation, args=(stop_spinner,))
     spinner_thread.start()
 
     try:
         suggested_message = provider.generate_commit_message(staged_diff)
-        # Clean up any <think></think> tags from the message
-        suggested_message = clean_commit_message(suggested_message)
+        return clean_commit_message(suggested_message)
     finally:
         stop_spinner.set()
         spinner_thread.join()
 
+def handle_user_choice(choice: str, message: str, provider: Provider, staged_diff: str) -> tuple[str, bool]:
+    """Handle user input and return (new_message, should_continue)."""
+    if choice == 'a':
+        commit(message)
+        return message, False
+    elif choice == 'e':
+        edited_message = edit_message(message)
+        if edited_message:
+            commit(edited_message)
+            return edited_message, False
+    elif choice == 'r':
+        return generate_commit_message(provider, staged_diff), True
+    elif choice == 'q':
+        print("Commit aborted.")
+        return message, False
+    else:
+        print("Invalid choice. Please try again.")
+        return message, True
+
+def main():
+    load_dotenv()
+
+    # Check git repository
+    if not is_git_repository():
+        print("\033[31mError: Not a Git repository. Please initialize a Git repository or navigate to one.\033[0m")
+        sys.exit(1)
+
+    # Parse arguments
+    parser = argparse.ArgumentParser(description="An AI-powered git commit message generator.")
+    parser.add_argument("--provider", type=str, default=os.getenv("PROVIDER", DEFAULT_PROVIDER),
+                        help=f"The provider to use for generating commit messages. Can be 'ollama' or 'openai'. Default: {DEFAULT_PROVIDER}")
+    parser.add_argument("model", nargs="?", help="The model to use for generating commit messages.")
+    args = parser.parse_args()
+
+    # Get staged diff
+    staged_diff = get_staged_diff()
+    if not staged_diff:
+        print("No staged changes found. Please stage your changes with 'git add' first.")
+        sys.exit(0)
+
+    # Security check
+    credential_warnings = detect_credentials(staged_diff)
+    if credential_warnings:
+        if not prompt_credential_warning(credential_warnings):
+            print("Commit aborted for security reasons.")
+            sys.exit(0)
+
+    # Setup provider and generate initial message
+    provider = setup_provider(args.provider, args.model)
+    suggested_message = generate_commit_message(provider, staged_diff)
+
+    # Main interaction loop
     while True:
         print("\n---")
         print("\033[1mSuggested Commit Message:\033[0m")
@@ -365,30 +141,9 @@ def main():
             "\033[1m[A]\u001b[0mpply, \033[1m[E]\u001b[0mdit, \033[1m[R]\u001b[0m-generate, or \033[1m[Q]\u001b[0muit? (a/e/r/q) "
         ).lower()
 
-        if choice == 'a':
-            commit(suggested_message)
+        suggested_message, should_continue = handle_user_choice(choice, suggested_message, provider, staged_diff)
+        if not should_continue:
             break
-        elif choice == 'e':
-            edited_message = edit_message(suggested_message)
-            if edited_message:
-                commit(edited_message)
-                break
-        elif choice == 'r':
-            stop_spinner = threading.Event()
-            spinner_thread = threading.Thread(target=spinner_animation, args=(stop_spinner,))
-            spinner_thread.start()
-            try:
-                suggested_message = provider.generate_commit_message(staged_diff)
-                # Clean up any <think></think> tags from the message
-                suggested_message = clean_commit_message(suggested_message)
-            finally:
-                stop_spinner.set()
-                spinner_thread.join()
-        elif choice == 'q':
-            print("Commit aborted.")
-            break
-        else:
-            print("Invalid choice. Please try again.")
 
 if __name__ == "__main__":
     main()
