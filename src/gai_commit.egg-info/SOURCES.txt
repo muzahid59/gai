@@ -6,6 +6,7 @@ src/gai/cli.py
 src/gai/ollama_client.py
 src/gai/openai_client.py
 src/gai/provider.py
+src/gai/utils.py
 src/gai_commit.egg-info/PKG-INFO
 src/gai_commit.egg-info/SOURCES.txt
 src/gai_commit.egg-info/dependency_links.txt
