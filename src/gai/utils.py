@@ -22,7 +22,7 @@ def is_git_repository() -> bool:
         return False
 
 def get_staged_diff() -> str:
-    """Runs 'git diff --cached --minimal --unified=5' and returns the filtered output."""
+    """Runs 'git diff --staged --minimal --unified=5' and returns the filtered output."""
     try:
         result = subprocess.run(
             ["git", "diff", "--staged", "--minimal", "--unified=5"],
