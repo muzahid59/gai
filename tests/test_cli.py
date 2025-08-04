@@ -8,6 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from gai import cli
+from gai import utils
 
 @pytest.fixture(autouse=True)
 def cleanup_env_vars():
@@ -33,7 +34,7 @@ def test_get_staged_diff(mock_subprocess_run):
     mock_subprocess_run.return_value.stdout = "diff content"
     mock_subprocess_run.return_value.returncode = 0
     mock_subprocess_run.return_value.stderr = ""
-    assert cli.get_staged_diff() == "diff content"
+    assert utils.get_staged_diff() == "diff content"
 
 def test_clean_commit_message():
     # Test removing <think></think> tags
@@ -50,11 +51,11 @@ added check for git repository status"""
 
 added check for git repository status"""
     
-    assert cli.clean_commit_message(message_with_think) == expected
+    assert utils.clean_commit_message(message_with_think) == expected
     
     # Test message without think tags (should remain unchanged)
     clean_message = "feat: add new feature\n\nThis is a normal commit message"
-    assert cli.clean_commit_message(clean_message) == clean_message
+    assert utils.clean_commit_message(clean_message) == clean_message
     
     # Test multiple think blocks
     multiple_thinks = """<think>First think block</think>
@@ -67,13 +68,13 @@ This is the description"""
 
 This is the description"""
     
-    assert cli.clean_commit_message(multiple_thinks) == expected_multiple
+    assert utils.clean_commit_message(multiple_thinks) == expected_multiple
 
 def test_save_provider_model_pair():
     # Test saving provider-model pair to .env file
     with patch('builtins.open', mock_open()) as mock_file:
         with patch('pathlib.Path.exists', return_value=False):
-            cli.save_provider_model_pair('ollama', 'llama3.1')
+            utils.save_provider_model_pair('ollama', 'llama3.1')
             
             # Check that file was opened for writing
             mock_file.assert_called_with(Path(".env"), "w")
@@ -88,7 +89,7 @@ def test_save_provider_model_pair():
     existing_content = "API_KEY=test\nPROVIDER=openai\nMODEL=gpt-4\nOTHER=value"
     with patch('builtins.open', mock_open(read_data=existing_content)) as mock_file:
         with patch('pathlib.Path.exists', return_value=True):
-            cli.save_provider_model_pair('ollama', 'deepseek-r1:8b')
+            utils.save_provider_model_pair('ollama', 'deepseek-r1:8b')
             
             # Check that the content was updated
             handle = mock_file()
@@ -98,31 +99,63 @@ def test_save_provider_model_pair():
             assert "API_KEY=test" in written_content
             assert "OTHER=value" in written_content
 
-def test_save_model_to_env():
-    # Test saving model to .env file
+def test_detect_credentials():
+    """Test credential detection functionality."""
+    # Test with API key
+    diff_with_api_key = """diff --git a/test.py b/test.py
+index 1234567..abcdefg 100644
+--- a/test.py
++++ b/test.py
+@@ -1,3 +1,4 @@
+ import os
+ 
++API_KEY=sk-proj-test_api_key
+ def main():"""
+    
+    warnings = utils.detect_credentials(diff_with_api_key)
+    assert len(warnings) == 1
+    assert "api keys" in warnings[0].lower()
+    
+    # Test with no credentials
+    clean_diff = """diff --git a/test.py b/test.py
+index 1234567..abcdefg 100644
+--- a/test.py
++++ b/test.py
+@@ -1,3 +1,4 @@
+ import os
+ 
++def test_function():
++    return "hello world"
+ def main():"""
+    
+    warnings = utils.detect_credentials(clean_diff)
+    assert len(warnings) == 0
+
+def test_save_api_key_to_env():
+    # Test saving API key to .env file
     with patch('builtins.open', mock_open()) as mock_file:
         with patch('pathlib.Path.exists', return_value=False):
-            cli.save_model_to_env('llama3.1')
+            utils.save_api_key_to_env('sk-test123')
             
             # Check that file was opened for writing
             mock_file.assert_called_with(Path(".env"), "w")
             
-            # Check that the model was written
+            # Check that the API key was written
             handle = mock_file()
             written_content = ''.join(call.args[0] for call in handle.write.call_args_list)
-            assert "MODEL=llama3.1" in written_content
+            assert "API_KEY=sk-test123" in written_content
     
-    # Test updating existing model in .env file
-    existing_content = "API_KEY=test\nMODEL=old_model\nOTHER=value"
+    # Test updating existing API key in .env file
+    existing_content = "PROVIDER=test\nAPI_KEY=old_key\nOTHER=value"
     with patch('builtins.open', mock_open(read_data=existing_content)) as mock_file:
         with patch('pathlib.Path.exists', return_value=True):
-            cli.save_model_to_env('new_model')
+            utils.save_api_key_to_env('new_key')
             
             # Check that the content was updated
             handle = mock_file()
             written_content = ''.join(call.args[0] for call in handle.write.call_args_list)
-            assert "MODEL=new_model" in written_content
-            assert "API_KEY=test" in written_content
+            assert "API_KEY=new_key" in written_content
+            assert "PROVIDER=test" in written_content
             assert "OTHER=value" in written_content
 
 # Test for Ollama provider with no model (uses default and saves pair)
