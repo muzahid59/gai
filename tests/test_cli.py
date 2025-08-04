@@ -191,7 +191,7 @@ def test_main_ollama_no_model_default(mock_input, mock_thread, mock_OllamaProvid
         # Assertions
         mock_save_pair.assert_called_once_with('ollama', 'llama3.2')  # Should save default model
         mock_OllamaProvider.assert_called_once_with(model='llama3.2', endpoint='http://input.endpoint')
-        mock_provider_instance.generate_commit_message.assert_called_once_with("diff content")
+        mock_provider_instance.generate_commit_message.assert_called_once_with("diff content", oneline=False)
         
         # Check that commit was called
         commit_call_found = False
@@ -230,7 +230,7 @@ def test_main_ollama_with_model_cmdline(mock_input, mock_thread, mock_OllamaProv
         # Assertions - should save the provided model with ollama provider
         mock_save_pair.assert_called_once_with('ollama', 'deepseek-r1:8b')
         mock_OllamaProvider.assert_called_once_with(model='deepseek-r1:8b', endpoint='http://env.endpoint')
-        mock_provider_instance.generate_commit_message.assert_called_once_with("diff content")
+        mock_provider_instance.generate_commit_message.assert_called_once_with("diff content", oneline=False)
         
         # Check that commit was called
         commit_call_found = False
