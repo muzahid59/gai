@@ -1,7 +1,6 @@
 import os
 from openai import OpenAI
 from gai.provider import Provider
-import json
 
 DEFAULT_OPENAI_MODEL = "gpt-3.5-turbo"
 
@@ -26,22 +25,31 @@ class OpenAIProvider(Provider):
             "- Format: <type>[optional scope]: <description>\n"
             "- Use present tense (e.g., 'add feature' not 'added feature')\n"
             "- Keep subject line under 50 characters\n"
-            "- Lines in body must not exceed 72 characters\n\n"
+        )
+
+        if not oneline:
+            system_prompt += (
+            "\n- Lines in body must not exceed 72 characters\n\n"
 
             "**BODY FORMAT (for multiple changes):**\n"
             "- Use bullet points (- ) for multiple changes\n"
             "- Each bullet point should be concise and specific\n"
             "- Start each bullet with a verb (add, fix, update, remove, etc.)\n"
             "- Focus on WHAT changed, not HOW it was implemented\n\n"
+            )
 
+        system_prompt += (
             "**OUTPUT REQUIREMENTS:**\n"
             "- Your response MUST contain ONLY the raw commit message text\n"
             "- NO introductory phrases like 'Here is the commit message:'\n"
             "- NO markdown formatting or code blocks\n"
             "- NO explanations or comments\n"
-            "- NO quotation marks around the message\n\n"
+            "- NO quotation marks around the message\n"
+        )
 
-            "**EXAMPLES:**\n"
+        if not oneline:
+            system_prompt += (
+            "\n\n**EXAMPLES:**\n"
             "feat: add user authentication system\n\n"
             "- Implement JWT-based authentication for API security\n"
             "- Add login and registration with password hashing\n"
@@ -51,7 +59,7 @@ class OpenAIProvider(Provider):
             "- Fix connection pool timeout configuration\n"
             "- Add retry logic for failed database queries\n"
             "- Update error handling for connection failures"
-        )
+            )
 
         if oneline:
             system_prompt += "\n\n**ONE-LINE COMMIT MESSAGE REQUIREMENTS:**\n"
@@ -74,34 +82,3 @@ class OpenAIProvider(Provider):
         except Exception as e:
             print(f"Error generating commit message with OpenAI: {e}")
             return None
-
-    def analyze_diff_for_commits(self, diff: str) -> list[dict]:
-        system_prompt = (
-            "You are an AI assistant that analyzes git diffs and suggests logical commit messages."
-            "Your task is to identify distinct, logically separable changes within the provided git diff."
-            "For each logical change, provide a concise description."
-            "Respond ONLY with a JSON array of objects, where each object has a 'description' key."
-            "Example: [{\"description\": \"Fix login bug\"}, {\"description\": \"Add user profile page\"}]"
-            "DO NOT include any other text, explanations, or formatting outside the JSON array."
-        )
-        user_prompt = f"GIT DIFF:\n{diff}"
-
-        try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                stream=False
-            )
-            content = response.choices[0].message.content.strip()
-            try:
-                return json.loads(content)
-            except json.JSONDecodeError:
-                print(f"\n\u001b[31mError: Failed to parse JSON response from OpenAI.\u001b[0m")
-                print(f"Raw response: {content}")
-                return [] # Return empty list on parsing error
-        except Exception as e:
-            print(f"Error analyzing diff for commits with OpenAI: {e}")
-            return [] # Return empty list on API error

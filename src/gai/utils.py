@@ -103,45 +103,14 @@ def detect_credentials(diff_content: str) -> List[str]:
     """Detect potential credentials in the git diff and return a list of warnings."""
     warnings = []
     
-    patterns = {
-        'API Keys': [
-            r'(?i)(api[_-]?key|apikey)\s*[:=]\s*[\'"][a-zA-Z0-9_-]{20,}[\'"]',
-            r'(?i)(secret[_-]?key|secretkey)\s*[:=]\s*[\'"][a-zA-Z0-9_-]{20,}[\'"]',
-            r'sk-[a-zA-Z0-9_-]{20,}',  # OpenAI API key pattern (flexible length)
-            r'(?i)(api[_-]?key|apikey)\s*[:=]\s*[a-zA-Z0-9_-]{20,}',  # Unquoted keys
-        ],
-        'Passwords': [
-            r'(?i)(password|passwd|pwd)\s*[:=]\s*[\'"][^\'"\s]{8,}[\'"]',
-        ],
-        'Database URLs': [
-            r'(?i)(database[_-]?url|db[_-]?url)\s*[:=]\s*[\'"][^\'"\s]+[\'"]',
-            r'(?i)(mongodb|mysql|postgresql|postgres)://[^\'"\s]+',
-        ],
-        'Private Keys': [
-            r'-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----',
-            r'-----BEGIN\s+OPENSSH\s+PRIVATE\s+KEY-----',
-        ],
-        'Tokens': [
-            r'(?i)(access[_-]?token|auth[_-]?token|bearer[_-]?token)\s*[:=]\s*[\'"][a-zA-Z0-9_-]{20,}[\'"]',
-            r'(?i)(jwt[_-]?token|refresh[_-]?token)\s*[:=]\s*[\'"][a-zA-Z0-9._-]{20,}[\'"]',
-        ],
-        'AWS Credentials': [
-            r'AKIA[0-9A-Z]{16}',
-            r'(?i)(aws[_-]?secret[_-]?access[_-]?key)\s*[:=]\s*[\'"][a-zA-Z0-9/+=]{40}[\'"]',
-        ],
-        'Environment Variables': [
-            r'(?i)(secret|key|token|password|pwd|pass)\s*[:=]\s*[\'"][^\'"\s]{8,}[\'"]',
-        ]
-    }
+    # Single pattern to detect common credential formats
+    pattern = r'(?i)(password|pwd|secret|api_key|token|private_key)\s*=\s*["\']?[a-zA-Z0-9_/\-+=]{8,}["\']?'
     
     added_lines = [line[1:] for line in diff_content.split('\n') if line.startswith('+') and not line.startswith('+++')]
     
     for line in added_lines:
-        for category, pattern_list in patterns.items():
-            for pattern in pattern_list:
-                if re.search(pattern, line):
-                    warnings.append(f"Potential {category.lower()} detected in line: {line.strip()}")
-                    break
+        if re.search(pattern, line):
+            warnings.append(f"Potential credentials detected in line: {line.strip()}")
     
     return warnings
 
