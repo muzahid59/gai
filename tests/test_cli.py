@@ -114,7 +114,7 @@ index 1234567..abcdefg 100644
     
     warnings = utils.detect_credentials(diff_with_api_key)
     assert len(warnings) == 1
-    assert "api keys" in warnings[0].lower()
+    assert "potential credentials detected" in warnings[0].lower()
     
     # Test with no credentials
     clean_diff = """diff --git a/test.py b/test.py
@@ -169,7 +169,7 @@ def test_main_ollama_no_model_default(mock_input, mock_thread, mock_OllamaProvid
     # Mock subprocess calls for git
     mock_subprocess_run = MagicMock()
     def subprocess_side_effect(*args, **kwargs):
-        if args[0] == ["git", "diff", "--staged"]:
+        if args[0] == ["git", "diff", "--staged", "--minimal", "--unified=5"]:
             result = MagicMock()
             result.stdout = "diff content"
             result.returncode = 0
@@ -211,7 +211,7 @@ def test_main_ollama_with_model_cmdline(mock_input, mock_thread, mock_OllamaProv
     # Mock subprocess calls for git
     mock_subprocess_run = MagicMock()
     def subprocess_side_effect(*args, **kwargs):
-        if args[0] == ["git", "diff", "--staged"]:
+        if args[0] == ["git", "diff", "--staged", "--minimal", "--unified=5"]:
             result = MagicMock()
             result.stdout = "diff content"
             return result
@@ -250,7 +250,7 @@ def test_main_openai_provider_default(mock_input, mock_thread, mock_OpenAIProvid
     # Mock subprocess calls for git
     mock_subprocess_run = MagicMock()
     def subprocess_side_effect(*args, **kwargs):
-        if args[0] == ["git", "diff", "--staged"]:
+        if args[0] == ["git", "diff", "--staged", "--minimal", "--unified=5"]:
             result = MagicMock()
             result.stdout = "diff content"
             return result
@@ -270,7 +270,7 @@ def test_main_openai_provider_default(mock_input, mock_thread, mock_OpenAIProvid
         # Assertions
         mock_save_pair.assert_called_once_with('openai', 'gpt-3.5-turbo')  # Should save default model
         mock_OpenAIProvider.assert_called_once_with(model='gpt-3.5-turbo')
-        mock_provider_instance.generate_commit_message.assert_called_once_with("diff content")
+        mock_provider_instance.generate_commit_message.assert_called_once_with("diff content", oneline=False)
         
         # Check that commit was called
         commit_call_found = False
@@ -290,7 +290,7 @@ def test_main_openai_provider_with_model(mock_input, mock_thread, mock_OpenAIPro
     # Mock subprocess calls for git
     mock_subprocess_run = MagicMock()
     def subprocess_side_effect(*args, **kwargs):
-        if args[0] == ["git", "diff", "--staged"]:
+        if args[0] == ["git", "diff", "--staged", "--minimal", "--unified=5"]:
             result = MagicMock()
             result.stdout = "diff content"
             return result
@@ -310,7 +310,7 @@ def test_main_openai_provider_with_model(mock_input, mock_thread, mock_OpenAIPro
         # Assertions
         mock_save_pair.assert_called_once_with('openai', 'gpt-4')  # Should save specified model
         mock_OpenAIProvider.assert_called_once_with(model='gpt-4')
-        mock_provider_instance.generate_commit_message.assert_called_once_with("diff content")
+        mock_provider_instance.generate_commit_message.assert_called_once_with("diff content", oneline=False)
         
         # Check that commit was called
         commit_call_found = False
@@ -348,7 +348,7 @@ def test_main_openai_provider_interactive_api_key(mock_input, mock_thread, mock_
     # Mock subprocess calls for git
     mock_subprocess_run = MagicMock()
     def subprocess_side_effect(*args, **kwargs):
-        if args[0] == ["git", "diff", "--staged"]:
+        if args[0] == ["git", "diff", "--staged", "--minimal", "--unified=5"]:
             result = MagicMock()
             result.stdout = "diff content"
             return result
@@ -369,7 +369,7 @@ def test_main_openai_provider_interactive_api_key(mock_input, mock_thread, mock_
         mock_save_api_key.assert_called_once_with('sk-test-api-key')
         mock_save_pair.assert_called_once_with('openai', 'gpt-3.5-turbo')  # Should save default model
         mock_OpenAIProvider.assert_called_once_with(model='gpt-3.5-turbo')
-        mock_provider_instance.generate_commit_message.assert_called_once_with("diff content")
+        mock_provider_instance.generate_commit_message.assert_called_once_with("diff content", oneline=False)
         
         # Check that commit was called
         commit_call_found = False
