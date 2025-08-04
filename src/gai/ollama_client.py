@@ -2,6 +2,7 @@
 
 import requests
 import sys
+import json
 from gai.provider import Provider
 
 class OllamaProvider(Provider):
@@ -9,7 +10,7 @@ class OllamaProvider(Provider):
         self.model = model
         self.endpoint = endpoint
 
-    def generate_commit_message(self, diff):
+    def generate_commit_message(self, diff, oneline: bool = False):
         system_prompt=(
             "You are the best git assistant whose aim is to generate a git commit message."
             "IT MUST BE written in English, be concise, be lowercase, relevant and straight to the point."
@@ -22,8 +23,10 @@ class OllamaProvider(Provider):
             "Where <type> MUST NOT BE: add, update, delete etc."
             "A commit that has a footer BREAKING CHANGE:, or appends a ! after the type, introduces a breaking API change."
             "DO NOT ADD UNDER ANY CIRCUMSTANCES: explanation about the commit, details such as file, changes, hash or the conventional commits specs."
-            "Here is the git diff:"
         )
+        if oneline:
+            system_prompt += "IT MUST BE A SINGLE LINE COMMIT MESSAGE. DO NOT INCLUDE ANY BODY OR FOOTER."
+        system_prompt += "Here is the git diff:"
         user_prompt = f"---\n\nGIT DIFF:\n{diff}"
 
         json_payload = {
@@ -54,7 +57,56 @@ class OllamaProvider(Provider):
                 sys.exit(1)
 
         except requests.exceptions.RequestException as e:
-            print(f"\n\033[31mError connecting to Ollama:\033[0m {e}\n" \
+            print(f"\n\u001b[31mError connecting to Ollama:\u001b[0m {e}\n" \
+                  f"Please ensure the Ollama server is running and accessible at {self.endpoint}.")
+            sys.exit(1)
+
+    def analyze_diff_for_commits(self, diff: str) -> list[dict]:
+        system_prompt = (
+            "You are an AI assistant that analyzes git diffs and suggests logical commit messages."
+            "Your task is to identify distinct, logically separable changes within the provided git diff."
+            "For each logical change, provide a concise description."
+            "Respond ONLY with a JSON array of objects, where each object has a 'description' key."
+            "Example: [{\"description\": \"Fix login bug\"}, {\"description\": \"Add user profile page\"}]"
+            "DO NOT include any other text, explanations, or formatting outside the JSON array."
+        )
+        user_prompt = f"GIT DIFF:\n{diff}"
+
+        json_payload = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            "stream": False
+        }
+        request_url = f"{self.endpoint}/chat"
+
+        try:
+            response = requests.post(
+                request_url,
+                json=json_payload,
+                timeout=60
+            )
+            response.raise_for_status()
+
+            full_response = response.json()
+            if "message" in full_response and "content" in full_response["message"]:
+                try:
+                    # Attempt to parse the content as JSON
+                    return json.loads(full_response["message"]["content"].strip())
+                except json.JSONDecodeError:
+                    print(f"\n\u001b[31mError: Failed to parse JSON response from Ollama.\u001b[0m")
+                    raw_content = full_response["message"]["content"]
+                    print(f"Raw response: {raw_content}")
+                    sys.exit(1)
+            else:
+                print(f"\n\u001b[31mError: Unexpected response format from Ollama.\u001b[0m")
+                print(f"Response: {full_response}")
+                sys.exit(1)
+
+        except requests.exceptions.RequestException as e:
+            print(f"\n\u001b[31mError connecting to Ollama:\u001b[0m {e}\n" \
                   f"Please ensure the Ollama server is running and accessible at {self.endpoint}.")
             sys.exit(1)
 

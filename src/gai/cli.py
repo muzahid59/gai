@@ -66,14 +66,14 @@ def setup_provider(provider_name: str, model: str) -> Provider:
         print(f"Invalid provider: {provider_name}. Please choose 'ollama' or 'openai'.")
         sys.exit(1)
 
-def generate_commit_message(provider: Provider, staged_diff: str) -> str:
+def generate_commit_message(provider: Provider, staged_diff: str, oneline: bool = False) -> str:
     """Generate commit message with spinner."""
     stop_spinner = threading.Event()
     spinner_thread = threading.Thread(target=spinner_animation, args=(stop_spinner,))
     spinner_thread.start()
 
     try:
-        suggested_message = provider.generate_commit_message(staged_diff)
+        suggested_message = provider.generate_commit_message(staged_diff, oneline=oneline)
         return clean_commit_message(suggested_message)
     finally:
         stop_spinner.set()
@@ -111,6 +111,8 @@ def main():
     parser.add_argument("--provider", type=str, default=os.getenv("PROVIDER", DEFAULT_PROVIDER),
                         help=f"The provider to use for generating commit messages. Can be 'ollama' or 'openai'. Default: {DEFAULT_PROVIDER}")
     parser.add_argument("model", nargs="?", help="The model to use for generating commit messages.")
+    parser.add_argument("--multi-commit", action="store_true", help="Enable multi-commit summarization workflow.")
+    parser.add_argument("--oneline", action="store_true", help="Generate a single-line commit message.")
     args = parser.parse_args()
 
     # Get staged diff
@@ -128,20 +130,114 @@ def main():
 
     # Setup provider and generate initial message
     provider = setup_provider(args.provider, args.model)
-    suggested_message = generate_commit_message(provider, staged_diff)
 
-    # Main interaction loop
+    if args.multi_commit:
+        run_multi_commit_workflow(provider, staged_diff)
+    else:
+        suggested_message = generate_commit_message(provider, staged_diff, oneline=args.oneline)
+
+        # Main interaction loop
+        while True:
+            print("\n---")
+            print("\033[1mSuggested Commit Message:\033[0m")
+            print(suggested_message)
+            print("---")
+
+            choice = input(
+                "\033[1m[A]\u001b[0mpply, \033[1m[E]\u001b[0mdit, \033[1m[R]\u001b[0m-generate, or \033[1m[Q]\u001b[0muit? (a/e/r/q) "
+            ).lower()
+
+            suggested_message, should_continue = handle_user_choice(choice, suggested_message, provider, staged_diff)
+            if not should_continue:
+                break
+
+def run_multi_commit_workflow(provider: Provider, staged_diff: str):
+    print("\nAnalyzing diff for potential commit splits...")
+    suggested_commits = provider.analyze_diff_for_commits(staged_diff)
+
+    if not suggested_commits:
+        print("No logical commit splits found. Falling back to single commit message generation.")
+        suggested_message = generate_commit_message(provider, staged_diff)
+        # Main interaction loop for single commit
+        while True:
+            print("\n---")
+            print("\u001b[1mSuggested Commit Message:\u001b[0m")
+            print(suggested_message)
+            print("---")
+
+            choice = input(
+                "\u001b[1m[A]\u001b[0mpply, \u001b[1m[E]\u001b[0mdit, \u001b[1m[R]\u001b[0m-generate, or \u001b[1m[Q]\u001b[0muit? (a/e/r/q) "
+            ).lower()
+
+            suggested_message, should_continue = handle_user_choice(choice, suggested_message, provider, staged_diff)
+            if not should_continue:
+                break
+        return
+
+    print("\n--- Suggested Commit Splits ---")
+    for i, commit_data in enumerate(suggested_commits):
+        print(f"{i + 1}. {commit_data['description']}")
+    print("-----------------------------")
+
+    while True:
+        choice = input(
+            "\u001b[1m[S]\u001b[0mplit into multiple commits, \u001b[1m[U]\u001b[0msummarize into one, or \u001b[1m[Q]\u001b[0muit? (s/u/q) "
+        ).lower()
+
+        if choice == 's':
+            handle_split_commits(suggested_commits, provider, staged_diff)
+            break
+        elif choice == 'u':
+            handle_summarize_commit(provider, staged_diff)
+            break
+        elif choice == 'q':
+            print("Commit aborted.")
+            break
+        else:
+            print("Invalid choice. Please try again.")
+
+def handle_split_commits(suggested_commits: list[dict], provider: Provider, full_staged_diff: str):
+    print("\n--- Splitting into Multiple Commits ---")
+    for i, commit_data in enumerate(suggested_commits):
+        print(f"Generating message for commit {i + 1}: {commit_data['description']}")
+        # For now, we'll generate a message based on the description and full diff
+        # In a more advanced version, we'd try to isolate the diff for this specific commit
+        prompt_for_llm = f"Generate a commit message for the following change: {commit_data['description']}\n\nGIT DIFF:\n{full_staged_diff}"
+        
+        stop_spinner = threading.Event()
+        spinner_thread = threading.Thread(target=spinner_animation, args=(stop_spinner,))
+        spinner_thread.start()
+        try:
+            # Temporarily override generate_commit_message to use the specific prompt
+            original_generate_commit_message = provider.generate_commit_message
+            provider.generate_commit_message = lambda diff: original_generate_commit_message(prompt_for_llm)
+            suggested_message = generate_commit_message(provider, full_staged_diff)
+            provider.generate_commit_message = original_generate_commit_message # Restore original
+        finally:
+            stop_spinner.set()
+            spinner_thread.join()
+
+        print(f"\nSuggested message for commit {i + 1}:\n{suggested_message}")
+        print("\nIMPORTANT: Please manually stage the files relevant to this change before proceeding.")
+        input("Press Enter to commit this change (or Ctrl+C to abort this specific commit)...")
+        commit(suggested_message)
+        print(f"Commit {i + 1} applied.")
+
+def handle_summarize_commit(provider: Provider, full_staged_diff: str):
+    print("\n--- Summarizing into One Commit ---")
+    suggested_message = generate_commit_message(provider, full_staged_diff)
+    # Main interaction loop for single commit
     while True:
         print("\n---")
-        print("\033[1mSuggested Commit Message:\033[0m")
+        print("\u001b[1mSuggested Commit Message:\u001b[0m")
         print(suggested_message)
         print("---")
 
         choice = input(
-            "\033[1m[A]\u001b[0mpply, \033[1m[E]\u001b[0mdit, \033[1m[R]\u001b[0m-generate, or \033[1m[Q]\u001b[0muit? (a/e/r/q) "
+            "\u001b[1m[A]\u001b[0mpply, \u001b[1m[E]\u001b[0mdit, \u001b[1m[R]\u001b[0m-generate, or \u001b[1m[Q]\u001b[0muit? (a/e/r/q) "
         ).lower()
 
-        suggested_message, should_continue = handle_user_choice(choice, suggested_message, provider, staged_diff)
+        suggested_message, should_continue = handle_user_choice(choice, suggested_message, provider, full_staged_diff)
         if not should_continue:
             break
 
