@@ -11,7 +11,6 @@ pip install gai-commit
 ## Usage
 
 ```bash
-# The command is still 'gai' 
 gai --help
 gai --provider openai
 gai --provider ollama
@@ -22,7 +21,6 @@ gai --provider ollama
 - 🤖 **AI-Powered**: Generate commit messages using OpenAI or Ollama
 - 🔄 **Interactive**: Choose from generated suggestions or edit them
 - ⚙️ **Configurable**: Support for multiple AI providers
-- 🔐 **Secure**: API keys stored safely in .env files
 
 ## Configuration
 
