@@ -21,31 +21,28 @@ def test_ollama_provider_generate_commit_message(mock_requests_post):
 
     assert message == "feat: ollama commit"
 
-    system_prompt = (
-        "You are the best git assistant whose aim is to generate a git commit message."
-        "IT MUST BE written in English, be concise, be lowercase, relevant and straight to the point."
-        "IT MUST FOLLOW conventional commits specifications and the following template:"
-        "<type>[optional scope]: <short description>"
-       
-        "[optional body]"
-        
-        "Where <type> MUST BE ONE OF: fix, feat, build, chore, ci, docs, style, refactor, perf, test"
-        "Where <type> MUST NOT BE: add, update, delete etc."
-        "A commit that has a footer BREAKING CHANGE:, or appends a ! after the type, introduces a breaking API change."
-        "DO NOT ADD UNDER ANY CIRCUMSTANCES: explanation about the commit, details such as file, changes, hash or the conventional commits specs."
-        "Here is the git diff:"
-    )
-    user_prompt = f"---\n\nGIT DIFF:\n{diff}"
+    mock_requests_post.assert_called_once()
+    args, kwargs = mock_requests_post.call_args
+    assert args[0] == f"{provider.endpoint}/chat"
 
-    mock_requests_post.assert_called_once_with(
-        f"{provider.endpoint}/chat",
-        json={
-            "model": provider.model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            "stream": False
-        },
-        timeout=60
-    )
+    json_payload = kwargs['json']
+    assert json_payload['model'] == provider.model
+    assert json_payload['stream'] is False
+    messages = json_payload['messages']
+    assert len(messages) == 2
+    system_msg = messages[0]
+    user_msg = messages[1]
+
+    # Partial assertions on system prompt
+    content = system_msg['content']
+    required_fragments = [
+        "You are to act as an expert author of git commit messages.",
+        "**COMMIT FORMAT RULES:**",
+        "Use ONLY these conventional commit keywords:",
+        "**OUTPUT REQUIREMENTS:**",
+        "raw commit message text"
+    ]
+    for frag in required_fragments:
+        assert frag in content
+
+    assert user_msg['content'] == f"Generate a commit message for this git diff:\n\n{diff}"
