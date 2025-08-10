@@ -2,6 +2,7 @@ import requests
 import sys
 from gai.provider import Provider
 
+DEFAULT_OLLAMA_MODEL = "llama3.2"
 class OllamaProvider(Provider):
     def __init__(self, model, endpoint):
         self.model = model
