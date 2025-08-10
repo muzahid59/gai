@@ -136,32 +136,25 @@ def save_provider_model_pair(provider: str, model: str) -> None:
     print(f"\033[32m✔ Provider '{provider}' with model '{model}' saved to .env file\033[0m")
 
 def save_api_key_to_env(api_key: str) -> None:
-    """Save the OpenAI API key to the .env file."""
+    """Save the OpenAI API key to the .env file using new OPEN_AI_API_KEY variable (legacy API_KEY retained if present)."""
     env_file = Path(".env")
-    
     env_content = ""
     if env_file.exists():
         with open(env_file, "r") as f:
             env_content = f.read()
-    
     lines = env_content.split('\n')
     updated = False
-    
+    # Prefer writing OPEN_AI_API_KEY now
     for i, line in enumerate(lines):
-        if line.startswith('API_KEY=') or line.startswith('#API_KEY='):
-            lines[i] = f"API_KEY={api_key}"
+        if line.startswith('OPEN_AI_API_KEY=') or line.startswith('#OPEN_AI_API_KEY='):
+            lines[i] = f"OPEN_AI_API_KEY={api_key}"
             updated = True
             break
-    
     if not updated:
-        if env_content and not env_content.endswith('\n'):
-            env_content += '\n'
-        lines.append(f"API_KEY={api_key}")
-    
+        lines.append(f"OPEN_AI_API_KEY={api_key}")
     with open(env_file, "w") as f:
-        f.write('\n'.join(lines))
-    
-    print(f"\033[32m✔ API key saved to .env file\033[0m")
+        f.write('\n'.join(l for l in lines if l != '') + '\n')
+    print(f"\033[32m✔ OpenAI API key saved to .env file (OPEN_AI_API_KEY)\033[0m")
 
 # Add helper for retrieving previously saved model
 def get_saved_model(provider: str) -> Optional[str]:

@@ -48,15 +48,16 @@ def setup_provider(provider_name: str, model: str) -> Provider:
     elif provider_name == "openai":
         from gai.openai_client import DEFAULT_OPENAI_MODEL
         
-        api_key = os.getenv("API_KEY")
+        # Prefer new variable name, fallback to legacy
+        api_key = os.getenv("OPEN_AI_API_KEY") or os.getenv("API_KEY")
         
         if not api_key:
             api_key = input("Enter your OpenAI API key: ").strip()
             if not api_key:
                 print("OpenAI API key is required for the OpenAI provider.")
                 sys.exit(1)
-            save_api_key_to_env(api_key)
-            os.environ["API_KEY"] = api_key
+            save_api_key_to_env(api_key)  # still writes legacy key var for backward compatibility
+            os.environ["OPEN_AI_API_KEY"] = api_key
         
         if model:
             save_provider_model_pair(provider_name, model)

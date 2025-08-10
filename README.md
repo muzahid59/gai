@@ -36,7 +36,7 @@ CHAT_URL=http://localhost:11434/api
 
 # For OpenAI (cloud)
 # PROVIDER=openai
-# API_KEY=your_api_key_here
+# OPEN_AI_API_KEY=your_api_key_here
 ```
 
 ## Command Line Options
@@ -49,7 +49,7 @@ gai --provider openai    # Use OpenAI instead of default
 ## Requirements
 
 - **For Ollama:** Install and run [Ollama](https://ollama.ai) locally
-- **For OpenAI:** Valid API key with available credits
+- **For OpenAI:** Valid API key with available credits (set OPEN_AI_API_KEY)
 
 ## License
 

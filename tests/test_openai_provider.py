@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from gai.openai_client import OpenAIProvider
 
-@patch.dict(os.environ, {"API_KEY": "test_api_key"})
+@patch.dict(os.environ, {"OPEN_AI_API_KEY": "test_api_key"})
 @patch('gai.openai_client.OpenAI')
 def test_openai_provider_generate_commit_message(mock_openai_class):
     # Mock the OpenAI client instance
