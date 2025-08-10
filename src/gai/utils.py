@@ -162,3 +162,28 @@ def save_api_key_to_env(api_key: str) -> None:
         f.write('\n'.join(lines))
     
     print(f"\033[32m✔ API key saved to .env file\033[0m")
+
+# Add helper for retrieving previously saved model
+def get_saved_model(provider: str) -> Optional[str]:
+    """
+    Return the saved model for the given provider if it matches the PROVIDER value in .env.
+    Otherwise return None.
+    """
+    env_file = Path(".env")
+    if not env_file.exists():
+        return None
+
+    saved_provider = None
+    saved_model = None
+
+    with open(env_file, "r") as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith("PROVIDER="):
+                saved_provider = line.split("=", 1)[1].strip()
+            elif line.startswith("MODEL="):
+                saved_model = line.split("=", 1)[1].strip()
+
+    if saved_provider == provider and saved_model:
+        return saved_model
+    return None

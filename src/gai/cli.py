@@ -14,6 +14,7 @@ from gai.utils import (
     edit_message,
     spinner_animation,
     clean_commit_message,
+    get_saved_model,
     save_provider_model_pair,
     save_api_key_to_env
 )
@@ -46,9 +47,9 @@ def setup_provider(provider_name: str, model: str) -> Provider:
     
     elif provider_name == "openai":
         from gai.openai_client import DEFAULT_OPENAI_MODEL
-from gai.utils import get_saved_model
         
         api_key = os.getenv("API_KEY")
+        
         if not api_key:
             api_key = input("Enter your OpenAI API key: ").strip()
             if not api_key:
