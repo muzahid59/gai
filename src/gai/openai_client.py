@@ -2,8 +2,8 @@ import os
 from openai import OpenAI
 from gai.provider import Provider
 
-# DEFAULT_OPENAI_MODEL = "gpt-3.5-turbo"
-DEFAULT_OPENAI_MODEL = "gpt-5"
+DEFAULT_OPENAI_MODEL = "gpt-3.5-turbo"
+# DEFAULT_OPENAI_MODEL = "gpt-5"
 
 class OpenAIProvider(Provider):
     def __init__(self, model=None):
@@ -16,9 +16,8 @@ class OpenAIProvider(Provider):
     def generate_commit_message(self, diff, oneline: bool = False):
         system_prompt = (
             "You are to act as an expert author of git commit messages. "
-            "Your mission is to create clean and comprehensive commit messages following the Conventional Commit specification. "
-            "You must explain WHAT the changes are and WHY they were made.\n\n"
-
+            "Your mission is to create clean and concise commit messages following the Conventional Commit specification. "
+            
             "I will provide you with the output of 'git diff --staged' and you must convert it into a proper commit message.\n\n"
 
             "**COMMIT FORMAT RULES:**\n"
@@ -52,14 +51,14 @@ class OpenAIProvider(Provider):
             system_prompt += (
             "\n\n**EXAMPLES:**\n"
             "feat: add user authentication system\n\n"
-            "- Implement JWT-based authentication for API security\n"
-            "- Add login and registration with password hashing\n"
-            "- Include middleware for protecting sensitive routes\n\n"
+                "- Implement JWT-based authentication for API security\n"
+                "- Add login and registration with password hashing\n"
+                "- Include middleware for protecting sensitive routes\n\n"
 
             "fix: resolve database connection issues\n\n"
-            "- Fix connection pool timeout configuration\n"
-            "- Add retry logic for failed database queries\n"
-            "- Update error handling for connection failures"
+                "- Fix connection pool timeout configuration\n"
+                "- Add retry logic for failed database queries\n"
+                "- Update error handling for connection failures"
             )
 
         if oneline:
