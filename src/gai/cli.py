@@ -23,14 +23,19 @@ DEFAULT_ENDPOINT = "http://localhost:11434/api"
 DEFAULT_PROVIDER = "ollama"
 
 def setup_provider(provider_name: str, model: str) -> Provider:
-    from ollama_client import DEFAULT_OLLAMA_MODEL
+    from gai.ollama_client import DEFAULT_OLLAMA_MODEL
     """Setup and return the appropriate provider."""
     if provider_name == "ollama":
         if model:
             save_provider_model_pair(provider_name, model)
             model_to_use = model
         else:
-            model_to_use = DEFAULT_OLLAMA_MODEL
+            # Try to get the saved model first
+            saved_model = get_saved_model(provider_name)
+            if saved_model:
+                model_to_use = saved_model
+            else:
+                model_to_use = DEFAULT_OLLAMA_MODEL
             save_provider_model_pair(provider_name, model_to_use)
         
         endpoint_to_use = os.getenv("CHAT_URL")
@@ -41,6 +46,7 @@ def setup_provider(provider_name: str, model: str) -> Provider:
     
     elif provider_name == "openai":
         from gai.openai_client import DEFAULT_OPENAI_MODEL
+from gai.utils import get_saved_model
         
         api_key = os.getenv("API_KEY")
         if not api_key:
