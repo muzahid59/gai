@@ -14,8 +14,6 @@ from gai.utils import (
     edit_message,
     spinner_animation,
     clean_commit_message,
-    detect_credentials,
-    prompt_credential_warning,
     save_provider_model_pair,
     save_api_key_to_env
 )
@@ -119,13 +117,6 @@ def main():
     if not staged_diff:
         print("No staged changes found. Please stage your changes with 'git add' first.")
         sys.exit(0)
-
-    # Security check
-    credential_warnings = detect_credentials(staged_diff)
-    if credential_warnings:
-        if not prompt_credential_warning(credential_warnings):
-            print("Commit aborted for security reasons.")
-            sys.exit(0)
 
     # Setup provider and generate initial message
     provider = setup_provider(args.provider, args.model)

@@ -4,7 +4,7 @@ import sys
 import time
 import re
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 def is_git_repository() -> bool:
     """Checks if the current directory or any parent directory is a Git repository."""
@@ -98,40 +98,6 @@ def clean_commit_message(message: str) -> str:
     cleaned = re.sub(r'\n\s*\n\s*\n', '\n\n', cleaned)
     cleaned = cleaned.strip()
     return cleaned
-
-def detect_credentials(diff_content: str) -> List[str]:
-    """Detect potential credentials in the git diff and return a list of warnings."""
-    warnings = []
-    
-    # Single pattern to detect common credential formats
-    pattern = r'(?i)(password|pwd|secret|api_key|token|private_key)\s*=\s*["\']?[a-zA-Z0-9_/\-+=]{8,}["\']?'
-    
-    added_lines = [line[1:] for line in diff_content.split('\n') if line.startswith('+') and not line.startswith('+++')]
-    
-    for line in added_lines:
-        if re.search(pattern, line):
-            warnings.append(f"Potential credentials detected in line: {line.strip()}")
-    
-    return warnings
-
-def prompt_credential_warning(warnings: List[str]) -> bool:
-    """Display credential warnings and ask user if they want to continue."""
-    print("\n\033[1;31m⚠️  SECURITY WARNING ⚠️\033[0m")
-    print("\033[33mPotential credentials or sensitive information detected:\033[0m\n")
-    
-    for warning in warnings:
-        print(f"  • {warning}")
-    
-    print("\n\033[1;33mThis could expose sensitive information in your commit history!\033[0m")
-    
-    while True:
-        choice = input("\nDo you want to continue anyway? \033[1m[Y]\u001b[0mes/\033[1m[N]\u001b[0mo (y/n): ").lower().strip()
-        if choice in ['y', 'yes']:
-            return True
-        elif choice in ['n', 'no']:
-            return False
-        else:
-            print("Please enter 'y' for yes or 'n' for no.")
 
 def save_provider_model_pair(provider: str, model: str) -> None:
     """Save the provider-model pair to the .env file."""

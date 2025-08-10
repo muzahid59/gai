@@ -99,38 +99,6 @@ def test_save_provider_model_pair():
             assert "API_KEY=test" in written_content
             assert "OTHER=value" in written_content
 
-def test_detect_credentials():
-    """Test credential detection functionality."""
-    # Test with API key
-    diff_with_api_key = """diff --git a/test.py b/test.py
-index 1234567..abcdefg 100644
---- a/test.py
-+++ b/test.py
-@@ -1,3 +1,4 @@
- import os
- 
-+API_KEY=sk-proj-test_api_key
- def main():"""
-    
-    warnings = utils.detect_credentials(diff_with_api_key)
-    assert len(warnings) == 1
-    assert "potential credentials detected" in warnings[0].lower()
-    
-    # Test with no credentials
-    clean_diff = """diff --git a/test.py b/test.py
-index 1234567..abcdefg 100644
---- a/test.py
-+++ b/test.py
-@@ -1,3 +1,4 @@
- import os
- 
-+def test_function():
-+    return "hello world"
- def main():"""
-    
-    warnings = utils.detect_credentials(clean_diff)
-    assert len(warnings) == 0
-
 def test_save_api_key_to_env():
     # Test saving API key to .env file
     with patch('builtins.open', mock_open()) as mock_file:
@@ -294,7 +262,7 @@ def test_main_openai_provider_with_model(mock_input, mock_thread, mock_OpenAIPro
             result = MagicMock()
             result.stdout = "diff content"
             return result
-        elif args[0] and args[0][0] == "git" and args[0][1] == "commit":
+        elif args[0] and args[0][1] == "commit":
             return MagicMock()
         return MagicMock()
 
