@@ -9,7 +9,7 @@ class OpenAIProvider(Provider):
     def __init__(self, model=None):
         self.model = model or os.getenv("MODEL") or DEFAULT_OPENAI_MODEL
         # Prefer new variable, fallback to legacy for backward compatibility
-        self.api_key = os.getenv("OPEN_AI_API_KEY") or os.getenv("API_KEY")
+        self.api_key = os.getenv("OPEN_AI_API_KEY")
         if not self.api_key:
             raise ValueError("OPEN_AI_API_KEY environment variable not set (legacy API_KEY also not found).")
         self.client = OpenAI(api_key=self.api_key)
