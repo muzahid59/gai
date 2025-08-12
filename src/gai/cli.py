@@ -13,10 +13,7 @@ from gai.utils import (
     commit,
     edit_message,
     spinner_animation,
-    clean_commit_message,
-    get_saved_model,
-    save_provider_model_pair,
-    save_api_key_to_env
+    clean_commit_message
 )
 
 # Configuration
@@ -28,20 +25,13 @@ def setup_provider(provider_name: str, model: str) -> Provider:
     """Setup and return the appropriate provider."""
     if provider_name == "ollama":
         if model:
-            save_provider_model_pair(provider_name, model)
             model_to_use = model
         else:
-            # Try to get the saved model first
-            saved_model = get_saved_model(provider_name)
-            if saved_model:
-                model_to_use = saved_model
-            else:
-                model_to_use = DEFAULT_OLLAMA_MODEL
-            save_provider_model_pair(provider_name, model_to_use)
-        
-        endpoint_to_use = os.getenv("CHAT_URL")
-        if not endpoint_to_use:
-            endpoint_to_use = input(f"Enter LLM API endpoint (default: {DEFAULT_ENDPOINT}): ") or DEFAULT_ENDPOINT
+            model_to_use = os.getenv("OLLAMA_AI_MODEL") or DEFAULT_OLLAMA_MODEL
+
+        os.environ["OLLAMA_AI_MODEL"] = model_to_use
+
+        endpoint_to_use = DEFAULT_ENDPOINT
         
         return OllamaProvider(model=model_to_use, endpoint=endpoint_to_use)
     
@@ -55,16 +45,15 @@ def setup_provider(provider_name: str, model: str) -> Provider:
             if not api_key:
                 print("OpenAI API key is required for the OpenAI provider.")
                 sys.exit(1)
-            save_api_key_to_env(api_key)
             os.environ["OPEN_AI_API_KEY"] = api_key
         
         if model:
-            save_provider_model_pair(provider_name, model)
             model_to_use = model
+            os.environ["OPEN_AI_MODEL"] = model_to_use
         else:
-            model_to_use = DEFAULT_OPENAI_MODEL
-            save_provider_model_pair(provider_name, model_to_use)
-        
+            model_to_use = os.getenv("OPEN_AI_MODEL") or DEFAULT_OPENAI_MODEL
+            os.environ["OPEN_AI_MODEL"] = model_to_use
+
         return OpenAIProvider(model=model_to_use)
     
     else:
