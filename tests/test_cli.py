@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch, MagicMock, mock_open
+from unittest.mock import patch, MagicMock
 import os
 import sys
 from pathlib import Path
@@ -13,9 +13,9 @@ from gai import utils
 @pytest.fixture(autouse=True)
 def cleanup_env_vars():
     # Store original environment variables
-    original_env = {k: os.environ[k] for k in os.environ if k in ["MODEL", "CHAT_URL", "PROVIDER", "API_KEY"]}
+    original_env = {k: os.environ[k] for k in os.environ if k in ["MODEL", "CHAT_URL", "PROVIDER", "OPEN_AI_API_KEY"]}
     # Clear the environment variables for the test
-    for k in ["MODEL", "CHAT_URL", "PROVIDER", "API_KEY"]:
+    for k in ["MODEL", "CHAT_URL", "PROVIDER", "OPEN_AI_API_KEY"]:
         if k in os.environ:
             del os.environ[k]
 
@@ -25,7 +25,7 @@ def cleanup_env_vars():
     for k in original_env:
         os.environ[k] = original_env[k]
     # Clean up any variables set during the test that were not originally present
-    for k in ["MODEL", "CHAT_URL", "PROVIDER", "API_KEY"]:
+    for k in ["MODEL", "CHAT_URL", "PROVIDER", "OPEN_AI_API_KEY"]:
         if k in os.environ and k not in original_env:
             del os.environ[k]
 

@@ -27,17 +27,13 @@ def setup_provider(provider_name: str, model: str) -> Provider:
     if provider_name:
         provider_name = provider_name.lower()
     else:
-        provider_name = os.getenv("AI_PROVIDER") or DEFAULT_PROVIDER
-
-    os.environ["AI_PROVIDER"] = provider_name
+        provider_name = DEFAULT_PROVIDER
 
     if provider_name == "ollama":
         if model:
             model_to_use = model
         else:
-            model_to_use = os.getenv("OLLAMA_AI_MODEL") or DEFAULT_OLLAMA_MODEL
-
-        os.environ["OLLAMA_AI_MODEL"] = model_to_use
+            model_to_use = DEFAULT_OLLAMA_MODEL
 
         endpoint_to_use = DEFAULT_ENDPOINT
         
@@ -57,10 +53,8 @@ def setup_provider(provider_name: str, model: str) -> Provider:
         
         if model:
             model_to_use = model
-            os.environ["OPEN_AI_MODEL"] = model_to_use
         else:
-            model_to_use = os.getenv("OPEN_AI_MODEL") or DEFAULT_OPENAI_MODEL
-            os.environ["OPEN_AI_MODEL"] = model_to_use
+            model_to_use = DEFAULT_OPENAI_MODEL
         
         return OpenAIProvider(model=model_to_use)
     
@@ -111,7 +105,7 @@ def main():
 
     # Parse arguments
     parser = argparse.ArgumentParser(description="An AI-powered git commit message generator.")
-    parser.add_argument("--provider", type=str, default=os.getenv("AI_PROVIDER", DEFAULT_PROVIDER),
+    parser.add_argument("--provider", type=str, default=DEFAULT_PROVIDER,
                         help=f"The provider to use for generating commit messages. Can be 'ollama' or 'openai'. Default: {DEFAULT_PROVIDER}")
     parser.add_argument("model", nargs="?", help="The model to use for generating commit messages.")
     parser.add_argument("--oneline", action="store_true", help="Generate a single-line commit message.")
