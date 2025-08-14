@@ -6,6 +6,8 @@ AI-powered generator for high‑quality Conventional Commit messages from your s
 
 ```bash
 pip install gai-commit
+# Stage the files you want included (REQUIRED)
+git add path/to/file.py            # or: git add .
 # Default provider = Ollama (local)
 gai
 # Specify model (Ollama)
@@ -16,6 +18,8 @@ gai --provider openai gpt-4
 # One‑line (subject only)
 gai --oneline
 ```
+
+> You must stage changes first; otherwise the tool will have an empty diff.
 
 ## What It Does
 
