@@ -23,6 +23,12 @@ DEFAULT_PROVIDER = "ollama"
 def setup_provider(provider_name: str, model: str) -> Provider:
     from gai.ollama_client import DEFAULT_OLLAMA_MODEL
     """Setup and return the appropriate provider."""
+
+    if provider_name:
+        provider_name = provider_name.lower()
+    else:
+        provider_name = os.getenv("AI_PROVIDER") or DEFAULT_PROVIDER
+
     if provider_name == "ollama":
         if model:
             model_to_use = model
@@ -54,6 +60,8 @@ def setup_provider(provider_name: str, model: str) -> Provider:
             model_to_use = os.getenv("OPEN_AI_MODEL") or DEFAULT_OPENAI_MODEL
             os.environ["OPEN_AI_MODEL"] = model_to_use
 
+        os.environ["AI_PROVIDER"] = provider_name
+        
         return OpenAIProvider(model=model_to_use)
     
     else:
