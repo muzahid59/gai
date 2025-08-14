@@ -3,6 +3,7 @@ import sys
 import os
 import threading
 from dotenv import load_dotenv
+from typing import Tuple  # added for Python 3.8 compatibility
 
 from gai.provider import Provider
 from gai.ollama_client import OllamaProvider
@@ -63,7 +64,7 @@ def generate_commit_message(provider: Provider, staged_diff: str, oneline: bool 
         stop_spinner.set()
         spinner_thread.join()
 
-def handle_user_choice(choice: str, message: str, provider: Provider, staged_diff: str, oneline: bool = False) -> tuple[str, bool]:
+def handle_user_choice(choice: str, message: str, provider: Provider, staged_diff: str, oneline: bool = False) -> Tuple[str, bool]:
     """Handle user input and return (new_message, should_continue)."""
     if choice == 'a':
         commit(message)
@@ -73,13 +74,15 @@ def handle_user_choice(choice: str, message: str, provider: Provider, staged_dif
         if edited_message:
             commit(edited_message)
             return edited_message, False
+        return message, True
     elif choice == 'r':
-        return generate_commit_message(provider, staged_diff, oneline=oneline), True
+        # Re-generate with same diff
+        new_msg = generate_commit_message(provider, staged_diff, oneline=oneline)
+        return new_msg, True
     elif choice == 'q':
-        print("Commit aborted.")
         return message, False
     else:
-        print("Invalid choice. Please try again.")
+        print("Invalid choice.")
         return message, True
 
 def main():
