@@ -1,7 +1,27 @@
-# Environment variables
-.env
-
-# Python virtual environment
+# Virtual environments
+.venv/
 venv/
-*.pyc
+env/
+
+# Python cache
 __pycache__/
+*.py[cod]
+*.pyo
+
+# Packaging / build
+build/
+dist/
+*.egg-info/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# IDE / OS
+.vscode/
+.DS_Store
+
+# Benchmarks / temp
+*.log
+*.tmp
