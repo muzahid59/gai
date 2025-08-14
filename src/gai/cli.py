@@ -24,26 +24,17 @@ def setup_provider(provider_name: str, model: str) -> Provider:
     from gai.ollama_client import DEFAULT_OLLAMA_MODEL
     """Setup and return the appropriate provider."""
 
-    if provider_name:
-        provider_name = provider_name.lower()
-    else:
-        provider_name = DEFAULT_PROVIDER
+    provider_name = (provider_name or DEFAULT_PROVIDER).lower()
 
     if provider_name == "ollama":
-        if model:
-            model_to_use = model
-        else:
-            model_to_use = DEFAULT_OLLAMA_MODEL
-
+        model_to_use = model or DEFAULT_OLLAMA_MODEL
         endpoint_to_use = DEFAULT_ENDPOINT
-        
         return OllamaProvider(model=model_to_use, endpoint=endpoint_to_use)
     
     elif provider_name == "openai":
         from gai.openai_client import DEFAULT_OPENAI_MODEL
-        
-        api_key = os.getenv("OPEN_AI_API_KEY")
-        
+    
+        api_key = os.getenv("OPEN_AI_API_KEY")       
         if not api_key:
             api_key = input("Enter your OpenAI API key: ").strip()
             if not api_key:
@@ -51,11 +42,7 @@ def setup_provider(provider_name: str, model: str) -> Provider:
                 sys.exit(1)
             os.environ["OPEN_AI_API_KEY"] = api_key
         
-        if model:
-            model_to_use = model
-        else:
-            model_to_use = DEFAULT_OPENAI_MODEL
-        
+        model_to_use = model or DEFAULT_OPENAI_MODEL
         return OpenAIProvider(model=model_to_use)
     
     else:
