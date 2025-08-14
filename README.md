@@ -1,56 +1,71 @@
 # gai-commit
 
-An AI-powered git commit message generator that helps you create meaningful commit messages using AI.
+AI-powered generator for high‑quality Conventional Commit messages from your staged diff.
 
-## Installation
+## Quick Start
 
 ```bash
 pip install gai-commit
-```
-
-## Usage
-
-```bash
-gai --help
+# Default provider = Ollama (local)
+gai
+# Specify model (Ollama)
+gai llama3.2
+# Use OpenAI (needs OPEN_AI_API_KEY)
 gai --provider openai
-gai --provider ollama
+gai --provider openai gpt-4
+# One‑line (subject only)
+gai --oneline
 ```
 
-## Features
+## What It Does
 
-- 🤖 **AI-Powered**: Generate commit messages using OpenAI or Ollama
-- 🔄 **Interactive**: Choose from generated suggestions or edit them
-- ⚙️ **Configurable**: Support for multiple AI providers
+1. Verifies you are inside a git repository via [`gai.utils.is_git_repository`](src/gai/utils.py).
+2. Collects staged changes (`git diff --staged --minimal --unified=5`) and strips noise using [`gai.utils.get_staged_diff`](src/gai/utils.py).
+3. Sends the cleaned diff to the selected provider through [`gai.cli.generate_commit_message`](src/gai/cli.py).
+4. Cleans AI output (removes hidden <think> blocks) via [`gai.utils.clean_commit_message`](src/gai/utils.py).
+5. Interactive loop (Apply / Edit / Re‑generate / Quit) handled by [`gai.cli.handle_user_choice`](src/gai/cli.py).
+6. Commits with your approved message.
 
-## Configuration
+## Environment Variables
 
-Create a `.env` file in your project root:
-
+Only one is currently required for OpenAI:
 ```dotenv
-# Choose provider: 'ollama' or 'openai'
-PROVIDER=ollama
-
-# For Ollama (local)
-MODEL=llama3.2
-CHAT_URL=http://localhost:11434/api
-
-# For OpenAI (cloud)
-# PROVIDER=openai
-# OPEN_AI_API_KEY=your_api_key_here
+OPEN_AI_API_KEY=sk-your-key
 ```
 
-## Command Line Options
+## Interactive Flow
+
+After generating a suggestion:
+
+```
+Suggested Commit Message:
+feat(parser): improve error resilience
+
+- add fallback recovery for malformed input
+- reduce panic cases in edge parsing paths
+---
+[A]pply, [E]dit, [R]-generate, or [Q]uit? (a/e/r/q)
+```
+
+Options:
+- a: Commit immediately (`git commit -m "<message>"`)
+- e: Open `$EDITOR` (defaults to `vim`) to refine
+- r: Ask AI again (same diff)
+- q: Abort
+
+## One-Line Mode
+
+Use `--oneline` to force a single concise subject line (no body). Logic passes `oneline=True` into provider calls: [`gai.cli.generate_commit_message`](src/gai/cli.py).
+
+## Development
 
 ```bash
-gai --provider ollama    # Override provider
-gai --provider openai    # Use OpenAI instead of default
+git clone https://github.com/muzahid59/gai
+cd gai
+pip install -e .
+pytest tests -v
 ```
-
-## Requirements
-
-- **For Ollama:** Install and run [Ollama](https://ollama.ai) locally
-- **For OpenAI:** Valid API key with available credits (set OPEN_AI_API_KEY)
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+MIT - see [LICENSE](LICENSE)
