@@ -81,12 +81,12 @@ def edit_message(message: str) -> Optional[str]:
         print(f"Error opening editor: {e}")
         return None
 
-def spinner_animation(stop_event) -> None:
+def spinner_animation(stop_event, model_name: str = "AI") -> None:
     """Displays a spinner animation."""
     spinner_chars = "|/-\\"
     while not stop_event.is_set():
         for char in spinner_chars:
-            sys.stdout.write(f"\r\033[1;34m\u001b[0m Contacting provider to generate commit message... {char}")
+            sys.stdout.write(f"\rGenerating commit by {model_name} {char}")
             sys.stdout.flush()
             time.sleep(0.1)
     sys.stdout.write("\r" + " " * 80 + "\r")

@@ -71,7 +71,8 @@ def setup_provider(provider_name: str, model: str) -> Provider:
 def generate_commit_message(provider: Provider, staged_diff: str, oneline: bool = False) -> str:
     """Generate commit message with spinner."""
     stop_spinner = threading.Event()
-    spinner_thread = threading.Thread(target=spinner_animation, args=(stop_spinner,))
+    model_name = getattr(provider, 'model', 'AI')
+    spinner_thread = threading.Thread(target=spinner_animation, args=(stop_spinner, model_name))
     spinner_thread.start()
 
     try:
