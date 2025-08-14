@@ -5,6 +5,7 @@ from gai.provider import Provider
 DEFAULT_OPENAI_MODEL = "gpt-3.5-turbo"
 # DEFAULT_OPENAI_MODEL = "gpt-5"
 
+
 class OpenAIProvider(Provider):
     def __init__(self, model=None):
         self.model = model or DEFAULT_OPENAI_MODEL
@@ -59,7 +60,12 @@ class OpenAIProvider(Provider):
             )
 
         if oneline:
-            system_prompt += ("\n\n**ONE-LINE COMMIT MESSAGE REQUIREMENTS:**\n" "- Your response MUST be a single line.\n" "- NO body or footer.\n" "- Keep the entire message concise and under 72 characters.\n")
+            system_prompt += (
+                "\n\n**ONE-LINE COMMIT MESSAGE REQUIREMENTS:**\n"
+                "- Your response MUST be a single line.\n"
+                "- NO body or footer.\n"
+                "- Keep the entire message concise and under 72 characters.\n"
+            )
 
         user_prompt = f"Generate a commit message for this git diff:\n\n{diff}"
 
@@ -68,9 +74,9 @@ class OpenAIProvider(Provider):
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
+                    {"role": "user", "content": user_prompt},
                 ],
-                stream=False
+                stream=False,
             )
             return response.choices[0].message.content.strip()
         except Exception as e:

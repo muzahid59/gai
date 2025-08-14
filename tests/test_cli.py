@@ -10,10 +10,15 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from gai import cli
 from gai import utils
 
+
 @pytest.fixture(autouse=True)
 def cleanup_env_vars():
     # Store original environment variables
-    original_env = {k: os.environ[k] for k in os.environ if k in ["MODEL", "CHAT_URL", "PROVIDER", "OPEN_AI_API_KEY"]}
+    original_env = {
+        k: os.environ[k]
+        for k in os.environ
+        if k in ["MODEL", "CHAT_URL", "PROVIDER", "OPEN_AI_API_KEY"]
+    }
     # Clear the environment variables for the test
     for k in ["MODEL", "CHAT_URL", "PROVIDER", "OPEN_AI_API_KEY"]:
         if k in os.environ:
@@ -29,12 +34,14 @@ def cleanup_env_vars():
         if k in os.environ and k not in original_env:
             del os.environ[k]
 
-@patch('subprocess.run')
+
+@patch("subprocess.run")
 def test_get_staged_diff(mock_subprocess_run):
     mock_subprocess_run.return_value.stdout = "diff content"
     mock_subprocess_run.return_value.returncode = 0
     mock_subprocess_run.return_value.stderr = ""
     assert utils.get_staged_diff() == "diff content"
+
 
 def test_clean_commit_message():
     # Test removing <think></think> tags
@@ -46,40 +53,45 @@ Multiple lines of thinking.
 feat(repository-check): add git repository validation
 
 added check for git repository status"""
-    
+
     expected = """feat(repository-check): add git repository validation
 
 added check for git repository status"""
-    
+
     assert utils.clean_commit_message(message_with_think) == expected
-    
+
     # Test message without think tags (should remain unchanged)
     clean_message = "feat: add new feature\n\nThis is a normal commit message"
     assert utils.clean_commit_message(clean_message) == clean_message
-    
+
     # Test multiple think blocks
     multiple_thinks = """<think>First think block</think>
 feat: test commit
 <think>Second think block</think>
 
 This is the description"""
-    
+
     expected_multiple = """feat: test commit
 
 This is the description"""
-    
+
     assert utils.clean_commit_message(multiple_thinks) == expected_multiple
 
 
 # Test for Ollama provider with no model (uses default)
 @patch.dict(os.environ, {}, clear=True)
-@patch('gai.cli.load_dotenv')  # Prevent .env loading
-@patch('gai.cli.OllamaProvider')
-@patch('threading.Thread')
-@patch('builtins.input', side_effect=['http://input.endpoint', 'a'])  # Endpoint input, then apply
-def test_main_ollama_no_model_default(mock_input, mock_thread, mock_OllamaProvider, mock_load_dotenv):
+@patch("gai.cli.load_dotenv")  # Prevent .env loading
+@patch("gai.cli.OllamaProvider")
+@patch("threading.Thread")
+@patch(
+    "builtins.input", side_effect=["http://input.endpoint", "a"]
+)  # Endpoint input, then apply
+def test_main_ollama_no_model_default(
+    mock_input, mock_thread, mock_OllamaProvider, mock_load_dotenv
+):
     # Mock subprocess calls for git
     mock_subprocess_run = MagicMock()
+
     def subprocess_side_effect(*args, **kwargs):
         if args[0] == ["git", "diff", "--staged", "--minimal", "--unified=5"]:
             result = MagicMock()
@@ -93,33 +105,41 @@ def test_main_ollama_no_model_default(mock_input, mock_thread, mock_OllamaProvid
 
     # Mock the provider
     mock_provider_instance = mock_OllamaProvider.return_value
-    mock_provider_instance.generate_commit_message.return_value = "feat: ollama default commit"
+    mock_provider_instance.generate_commit_message.return_value = (
+        "feat: ollama default commit"
+    )
 
-    with patch('subprocess.run', side_effect=subprocess_side_effect) as mock_run:
+    with patch("subprocess.run", side_effect=subprocess_side_effect) as mock_run:
         # Run main with provider 'ollama' but no model
-        with patch.object(sys, 'argv', ['gai', '--provider', 'ollama']):
+        with patch.object(sys, "argv", ["gai", "--provider", "ollama"]):
             cli.main()
 
         # Assertions
-        mock_OllamaProvider.assert_called_once_with(model='llama3.2', endpoint='http://localhost:11434/api')
-        mock_provider_instance.generate_commit_message.assert_called_once_with("diff content", oneline=False)
-        
+        mock_OllamaProvider.assert_called_once_with(
+            model="llama3.2", endpoint="http://localhost:11434/api"
+        )
+        mock_provider_instance.generate_commit_message.assert_called_once_with(
+            "diff content", oneline=False
+        )
+
         # Check that commit was called
         commit_call_found = False
         for call in mock_run.call_args_list:
-            if call.args[0] == ['git', 'commit', '-m', 'feat: ollama default commit']:
+            if call.args[0] == ["git", "commit", "-m", "feat: ollama default commit"]:
                 commit_call_found = True
                 break
         assert commit_call_found
 
+
 # Test for Ollama provider with command line model argument
-@patch.dict(os.environ, {'CHAT_URL': 'http://env.endpoint'}, clear=True)
-@patch('gai.cli.OllamaProvider')
-@patch('threading.Thread')
-@patch('builtins.input', return_value='a') # Only apply choice
+@patch.dict(os.environ, {"CHAT_URL": "http://env.endpoint"}, clear=True)
+@patch("gai.cli.OllamaProvider")
+@patch("threading.Thread")
+@patch("builtins.input", return_value="a")  # Only apply choice
 def test_main_ollama_with_model_cmdline(mock_input, mock_thread, mock_OllamaProvider):
     # Mock subprocess calls for git
     mock_subprocess_run = MagicMock()
+
     def subprocess_side_effect(*args, **kwargs):
         if args[0] == ["git", "diff", "--staged", "--minimal", "--unified=5"]:
             result = MagicMock()
@@ -131,32 +151,42 @@ def test_main_ollama_with_model_cmdline(mock_input, mock_thread, mock_OllamaProv
 
     # Mock the provider
     mock_provider_instance = mock_OllamaProvider.return_value
-    mock_provider_instance.generate_commit_message.return_value = "feat: ollama cmdline commit"
+    mock_provider_instance.generate_commit_message.return_value = (
+        "feat: ollama cmdline commit"
+    )
 
-    with patch('subprocess.run', side_effect=subprocess_side_effect) as mock_run:
-        with patch.object(sys, 'argv', ['gai', '--provider', 'ollama', 'deepseek-r1:8b']):
+    with patch("subprocess.run", side_effect=subprocess_side_effect) as mock_run:
+        with patch.object(
+            sys, "argv", ["gai", "--provider", "ollama", "deepseek-r1:8b"]
+        ):
             cli.main()
 
         # Assertions - should use the provided model with ollama provider
-        mock_OllamaProvider.assert_called_once_with(model='deepseek-r1:8b', endpoint='http://localhost:11434/api')
-        mock_provider_instance.generate_commit_message.assert_called_once_with("diff content", oneline=False)
-        
+        mock_OllamaProvider.assert_called_once_with(
+            model="deepseek-r1:8b", endpoint="http://localhost:11434/api"
+        )
+        mock_provider_instance.generate_commit_message.assert_called_once_with(
+            "diff content", oneline=False
+        )
+
         # Check that commit was called
         commit_call_found = False
         for call in mock_run.call_args_list:
-            if call.args[0] == ['git', 'commit', '-m', 'feat: ollama cmdline commit']:
+            if call.args[0] == ["git", "commit", "-m", "feat: ollama cmdline commit"]:
                 commit_call_found = True
                 break
         assert commit_call_found
 
+
 # Test for OpenAI provider with default model
 @patch.dict(os.environ, {"OPEN_AI_API_KEY": "fake-key"}, clear=True)
-@patch('gai.cli.OpenAIProvider')
-@patch('threading.Thread')
-@patch('builtins.input', return_value='a') # User chooses to apply
+@patch("gai.cli.OpenAIProvider")
+@patch("threading.Thread")
+@patch("builtins.input", return_value="a")  # User chooses to apply
 def test_main_openai_provider_default(mock_input, mock_thread, mock_OpenAIProvider):
     # Mock subprocess calls for git
     mock_subprocess_run = MagicMock()
+
     def subprocess_side_effect(*args, **kwargs):
         if args[0] == ["git", "diff", "--staged", "--minimal", "--unified=5"]:
             result = MagicMock()
@@ -168,33 +198,39 @@ def test_main_openai_provider_default(mock_input, mock_thread, mock_OpenAIProvid
 
     # Mock the provider
     mock_provider_instance = mock_OpenAIProvider.return_value
-    mock_provider_instance.generate_commit_message.return_value = "feat: openai default commit"
+    mock_provider_instance.generate_commit_message.return_value = (
+        "feat: openai default commit"
+    )
 
-    with patch('subprocess.run', side_effect=subprocess_side_effect) as mock_run:
+    with patch("subprocess.run", side_effect=subprocess_side_effect) as mock_run:
         # Run main with provider 'openai' but no model
-        with patch.object(sys, 'argv', ['gai', '--provider', 'openai']):
+        with patch.object(sys, "argv", ["gai", "--provider", "openai"]):
             cli.main()
 
         # Assertions
-        mock_OpenAIProvider.assert_called_once_with(model='gpt-3.5-turbo')
-        mock_provider_instance.generate_commit_message.assert_called_once_with("diff content", oneline=False)
-        
+        mock_OpenAIProvider.assert_called_once_with(model="gpt-3.5-turbo")
+        mock_provider_instance.generate_commit_message.assert_called_once_with(
+            "diff content", oneline=False
+        )
+
         # Check that commit was called
         commit_call_found = False
         for call in mock_run.call_args_list:
-            if call.args[0] == ['git', 'commit', '-m', 'feat: openai default commit']:
+            if call.args[0] == ["git", "commit", "-m", "feat: openai default commit"]:
                 commit_call_found = True
                 break
         assert commit_call_found
 
+
 # Test for OpenAI provider with specified model
 @patch.dict(os.environ, {"OPEN_AI_API_KEY": "fake-key"}, clear=True)
-@patch('gai.cli.OpenAIProvider')
-@patch('threading.Thread')
-@patch('builtins.input', return_value='a') # User chooses to apply
+@patch("gai.cli.OpenAIProvider")
+@patch("threading.Thread")
+@patch("builtins.input", return_value="a")  # User chooses to apply
 def test_main_openai_provider_with_model(mock_input, mock_thread, mock_OpenAIProvider):
     # Mock subprocess calls for git
     mock_subprocess_run = MagicMock()
+
     def subprocess_side_effect(*args, **kwargs):
         if args[0] == ["git", "diff", "--staged", "--minimal", "--unified=5"]:
             result = MagicMock()
@@ -206,50 +242,71 @@ def test_main_openai_provider_with_model(mock_input, mock_thread, mock_OpenAIPro
 
     # Mock the provider
     mock_provider_instance = mock_OpenAIProvider.return_value
-    mock_provider_instance.generate_commit_message.return_value = "feat: openai gpt4 commit"
+    mock_provider_instance.generate_commit_message.return_value = (
+        "feat: openai gpt4 commit"
+    )
 
-    with patch('subprocess.run', side_effect=subprocess_side_effect) as mock_run:
+    with patch("subprocess.run", side_effect=subprocess_side_effect) as mock_run:
         # Run main with provider 'openai' and specific model
-        with patch.object(sys, 'argv', ['gai', '--provider', 'openai', 'gpt-4']):
+        with patch.object(sys, "argv", ["gai", "--provider", "openai", "gpt-4"]):
             cli.main()
 
         # Assertions
-        mock_OpenAIProvider.assert_called_once_with(model='gpt-4')
-        mock_provider_instance.generate_commit_message.assert_called_once_with("diff content", oneline=False)
-        
+        mock_OpenAIProvider.assert_called_once_with(model="gpt-4")
+        mock_provider_instance.generate_commit_message.assert_called_once_with(
+            "diff content", oneline=False
+        )
+
         # Check that commit was called
         commit_call_found = False
         for call in mock_run.call_args_list:
-            if call.args[0] == ['git', 'commit', '-m', 'feat: openai gpt4 commit']:
+            if call.args[0] == ["git", "commit", "-m", "feat: openai gpt4 commit"]:
                 commit_call_found = True
                 break
         assert commit_call_found
 
-@patch('gai.cli.is_git_repository')
-@patch('builtins.print') # Capture print calls for error messages
-@patch('gai.cli.load_dotenv')
-@patch('gai.cli.get_staged_diff', return_value="diff content")
-@patch('gai.cli.OllamaProvider')
-@patch('threading.Thread')
-@patch('builtins.input', return_value='q') # Quit immediately
-def test_main_exits_if_not_git_repo(mock_input, mock_thread, mock_OllamaProvider, mock_get_staged_diff, mock_load_dotenv, mock_print, mock_is_git_repository):
+
+@patch("gai.cli.is_git_repository")
+@patch("builtins.print")  # Capture print calls for error messages
+@patch("gai.cli.load_dotenv")
+@patch("gai.cli.get_staged_diff", return_value="diff content")
+@patch("gai.cli.OllamaProvider")
+@patch("threading.Thread")
+@patch("builtins.input", return_value="q")  # Quit immediately
+def test_main_exits_if_not_git_repo(
+    mock_input,
+    mock_thread,
+    mock_OllamaProvider,
+    mock_get_staged_diff,
+    mock_load_dotenv,
+    mock_print,
+    mock_is_git_repository,
+):
     mock_is_git_repository.return_value = False
-    with patch.object(sys, 'argv', ['gai']):
+    with patch.object(sys, "argv", ["gai"]):
         with pytest.raises(SystemExit) as pytest_wrapped_e:
             cli.main()
         assert pytest_wrapped_e.type == SystemExit
         assert pytest_wrapped_e.value.code == 1
-    mock_print.assert_called_once_with("\033[31mError: Not a Git repository. Please initialize a Git repository or navigate to one.\033[0m")
+    mock_print.assert_called_once_with(
+        "\033[31mError: Not a Git repository. Please initialize a Git repository or navigate to one.\033[0m"
+    )
+
 
 # Test for OpenAI provider with missing API key (interactive input)
 @patch.dict(os.environ, {}, clear=True)
-@patch('gai.cli.load_dotenv')  # Prevent .env loading
-@patch('gai.cli.OpenAIProvider')
-@patch('threading.Thread')
-@patch('builtins.input', side_effect=['sk-test-api-key', 'a'])  # API key input, then apply
-def test_main_openai_provider_interactive_api_key(mock_input, mock_thread, mock_OpenAIProvider, mock_load_dotenv):
+@patch("gai.cli.load_dotenv")  # Prevent .env loading
+@patch("gai.cli.OpenAIProvider")
+@patch("threading.Thread")
+@patch(
+    "builtins.input", side_effect=["sk-test-api-key", "a"]
+)  # API key input, then apply
+def test_main_openai_provider_interactive_api_key(
+    mock_input, mock_thread, mock_OpenAIProvider, mock_load_dotenv
+):
     # Mock subprocess calls for git
     mock_subprocess_run = MagicMock()
+
     def subprocess_side_effect(*args, **kwargs):
         if args[0] == ["git", "diff", "--staged", "--minimal", "--unified=5"]:
             result = MagicMock()
@@ -261,21 +318,30 @@ def test_main_openai_provider_interactive_api_key(mock_input, mock_thread, mock_
 
     # Mock the provider
     mock_provider_instance = mock_OpenAIProvider.return_value
-    mock_provider_instance.generate_commit_message.return_value = "feat: openai interactive commit"
+    mock_provider_instance.generate_commit_message.return_value = (
+        "feat: openai interactive commit"
+    )
 
-    with patch('subprocess.run', side_effect=subprocess_side_effect) as mock_run:
+    with patch("subprocess.run", side_effect=subprocess_side_effect) as mock_run:
         # Run main with provider 'openai'
-        with patch.object(sys, 'argv', ['gai', '--provider', 'openai']):
+        with patch.object(sys, "argv", ["gai", "--provider", "openai"]):
             cli.main()
 
         # Assertions
-        mock_OpenAIProvider.assert_called_once_with(model='gpt-3.5-turbo')
-        mock_provider_instance.generate_commit_message.assert_called_once_with("diff content", oneline=False)
-        
+        mock_OpenAIProvider.assert_called_once_with(model="gpt-3.5-turbo")
+        mock_provider_instance.generate_commit_message.assert_called_once_with(
+            "diff content", oneline=False
+        )
+
         # Check that commit was called
         commit_call_found = False
         for call in mock_run.call_args_list:
-            if call.args[0] == ['git', 'commit', '-m', 'feat: openai interactive commit']:
+            if call.args[0] == [
+                "git",
+                "commit",
+                "-m",
+                "feat: openai interactive commit",
+            ]:
                 commit_call_found = True
                 break
         assert commit_call_found

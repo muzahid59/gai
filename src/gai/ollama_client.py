@@ -3,6 +3,8 @@ import sys
 from gai.provider import Provider
 
 DEFAULT_OLLAMA_MODEL = "llama3.2"
+
+
 class OllamaProvider(Provider):
     def __init__(self, model, endpoint):
         self.model = model
@@ -41,13 +43,13 @@ class OllamaProvider(Provider):
             system_prompt += (
                 "\n\n**EXAMPLES:**\n"
                 "feat: add user authentication system\n\n"
-                    "- Implement JWT-based authentication for API security\n"
-                    "- Add login and registration with password hashing\n"
-                    "- Include middleware for protecting sensitive routes\n\n"
+                "- Implement JWT-based authentication for API security\n"
+                "- Add login and registration with password hashing\n"
+                "- Include middleware for protecting sensitive routes\n\n"
                 "fix: resolve database connection issues\n\n"
-                    "- Fix connection pool timeout configuration\n"
-                    "- Add retry logic for failed database queries\n"
-                    "- Update error handling for connection failures"
+                "- Fix connection pool timeout configuration\n"
+                "- Add retry logic for failed database queries\n"
+                "- Update error handling for connection failures"
             )
         if oneline:
             system_prompt += (
@@ -61,27 +63,26 @@ class OllamaProvider(Provider):
             "model": self.model,
             "messages": [
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
+                {"role": "user", "content": user_prompt},
             ],
-            "stream": False
+            "stream": False,
         }
         request_url = f"{self.endpoint}/chat"
         try:
-            response = requests.post(
-                request_url,
-                json=json_payload,
-                timeout=60
-            )
+            response = requests.post(request_url, json=json_payload, timeout=60)
             response.raise_for_status()
             full_response = response.json()
             if "message" in full_response and "content" in full_response["message"]:
                 return full_response["message"]["content"].strip()
             else:
-                print(f"\n\033[31mError: Unexpected response format from Ollama.\033[0m")
+                print(
+                    f"\n\033[31mError: Unexpected response format from Ollama.\033[0m"
+                )
                 print(f"Response: {full_response}")
                 sys.exit(1)
         except requests.exceptions.RequestException as e:
-            print(f"\n\u001b[31mError connecting to Ollama:\u001b[0m {e}\n"
-                  f"Please ensure the Ollama server is running and accessible at {self.endpoint}.")
+            print(
+                f"\n\u001b[31mError connecting to Ollama:\u001b[0m {e}\n"
+                f"Please ensure the Ollama server is running and accessible at {self.endpoint}."
+            )
             sys.exit(1)
-

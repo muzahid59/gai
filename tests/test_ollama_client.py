@@ -8,7 +8,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from gai.ollama_client import OllamaProvider
 
-@patch('requests.post')
+
+@patch("requests.post")
 def test_ollama_provider_generate_commit_message(mock_requests_post):
     mock_response = MagicMock()
     mock_response.status_code = 200
@@ -25,24 +26,26 @@ def test_ollama_provider_generate_commit_message(mock_requests_post):
     args, kwargs = mock_requests_post.call_args
     assert args[0] == f"{provider.endpoint}/chat"
 
-    json_payload = kwargs['json']
-    assert json_payload['model'] == provider.model
-    assert json_payload['stream'] is False
-    messages = json_payload['messages']
+    json_payload = kwargs["json"]
+    assert json_payload["model"] == provider.model
+    assert json_payload["stream"] is False
+    messages = json_payload["messages"]
     assert len(messages) == 2
     system_msg = messages[0]
     user_msg = messages[1]
 
     # Partial assertions on system prompt
-    content = system_msg['content']
+    content = system_msg["content"]
     required_fragments = [
         "You are to act as an expert author of git commit messages.",
         "**COMMIT FORMAT RULES:**",
         "Use ONLY these conventional commit keywords:",
         "**OUTPUT REQUIREMENTS:**",
-        "raw commit message text"
+        "raw commit message text",
     ]
     for frag in required_fragments:
         assert frag in content
 
-    assert user_msg['content'] == f"Generate a commit message for this git diff:\n\n{diff}"
+    assert (
+        user_msg["content"] == f"Generate a commit message for this git diff:\n\n{diff}"
+    )
