@@ -21,7 +21,7 @@ from gai.cli import load_config
 
 def benchmark_openai_models():
     """Benchmark GPT-3.5 vs GPT-4 performance."""
-    
+
     # Parse command line arguments again (for direct function calls)
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -41,7 +41,7 @@ def benchmark_openai_models():
         action="store_true",
         help="Skip git repository check",
     )
-    
+
     # Parse known arguments only (ignore any unknown ones)
     args, _ = parser.parse_known_args()
 
@@ -336,11 +336,11 @@ if __name__ == "__main__":
 
     # Check API key from environment or config file
     load_dotenv()
-    
+
     # Get API key from environment or config file
     api_key = os.getenv("OPENAI_API_KEY")
     api_key_source = "environment"
-    
+
     # If not found in environment, try the config file
     if not api_key:
         config = load_config()
@@ -348,18 +348,18 @@ if __name__ == "__main__":
         api_key = api_keys.get("openai")
         if api_key:
             api_key_source = "config file"
-        
+
         # If found in config, set the environment variable for OpenAIProvider
         if api_key:
             os.environ["OPENAI_API_KEY"] = api_key
-    
+
     # Print API key status if in check-api-key mode
     if args.check_api_key:
         if api_key:
             print(f"✅ OpenAI API key found in {api_key_source}")
             print(f"API key: {api_key[:4]}...{api_key[-4:]} (masked for security)")
             sys.exit(0)
-    
+
     # Final check if we have an API key
     if not api_key:
         print("❌ OPENAI_API_KEY not found in environment or config file")

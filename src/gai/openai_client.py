@@ -4,6 +4,7 @@ from gai.provider import Provider
 
 DEFAULT_OPENAI_MODEL = "gpt-3.5-turbo"
 
+
 class OpenAIProvider(Provider):
     def __init__(self, model=None):
         self.model = model or DEFAULT_OPENAI_MODEL

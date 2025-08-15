@@ -90,7 +90,13 @@ This is the description"""
     "builtins.input", side_effect=["http://input.endpoint", "a"]
 )  # Endpoint input, then apply
 def test_main_ollama_no_model_default(
-    mock_input, mock_thread, mock_OllamaProvider, mock_update_setting, mock_save_config, mock_load_config, mock_load_dotenv
+    mock_input,
+    mock_thread,
+    mock_OllamaProvider,
+    mock_update_setting,
+    mock_save_config,
+    mock_load_config,
+    mock_load_dotenv,
 ):
     # Mock subprocess calls for git
     mock_subprocess_run = MagicMock()
@@ -142,7 +148,14 @@ def test_main_ollama_no_model_default(
 @patch("gai.cli.OllamaProvider")
 @patch("threading.Thread")
 @patch("builtins.input", return_value="a")  # Only apply choice
-def test_main_ollama_with_model_cmdline(mock_input, mock_thread, mock_OllamaProvider, mock_update_setting, mock_save_config, mock_load_config):
+def test_main_ollama_with_model_cmdline(
+    mock_input,
+    mock_thread,
+    mock_OllamaProvider,
+    mock_update_setting,
+    mock_save_config,
+    mock_load_config,
+):
     # Mock subprocess calls for git
     mock_subprocess_run = MagicMock()
 
@@ -192,7 +205,14 @@ def test_main_ollama_with_model_cmdline(mock_input, mock_thread, mock_OllamaProv
 @patch("gai.cli.OpenAIProvider")
 @patch("threading.Thread")
 @patch("builtins.input", return_value="a")  # User chooses to apply
-def test_main_openai_provider_default(mock_input, mock_thread, mock_OpenAIProvider, mock_update_setting, mock_save_config, mock_load_config):
+def test_main_openai_provider_default(
+    mock_input,
+    mock_thread,
+    mock_OpenAIProvider,
+    mock_update_setting,
+    mock_save_config,
+    mock_load_config,
+):
     # Mock subprocess calls for git
     mock_subprocess_run = MagicMock()
 
@@ -239,7 +259,14 @@ def test_main_openai_provider_default(mock_input, mock_thread, mock_OpenAIProvid
 @patch("gai.cli.OpenAIProvider")
 @patch("threading.Thread")
 @patch("builtins.input", return_value="a")  # User chooses to apply
-def test_main_openai_provider_with_model(mock_input, mock_thread, mock_OpenAIProvider, mock_update_setting, mock_save_config, mock_load_config):
+def test_main_openai_provider_with_model(
+    mock_input,
+    mock_thread,
+    mock_OpenAIProvider,
+    mock_update_setting,
+    mock_save_config,
+    mock_load_config,
+):
     # Mock subprocess calls for git
     mock_subprocess_run = MagicMock()
 
@@ -321,7 +348,13 @@ def test_main_exits_if_not_git_repo(
     "builtins.input", side_effect=["sk-test-api-key", "a"]
 )  # API key input, then apply
 def test_main_openai_provider_interactive_api_key(
-    mock_input, mock_thread, mock_OpenAIProvider, mock_update_setting, mock_save_config, mock_load_config, mock_load_dotenv
+    mock_input,
+    mock_thread,
+    mock_OpenAIProvider,
+    mock_update_setting,
+    mock_save_config,
+    mock_load_config,
+    mock_load_dotenv,
 ):
     # Mock subprocess calls for git
     mock_subprocess_run = MagicMock()
