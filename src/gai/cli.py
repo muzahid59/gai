@@ -8,6 +8,8 @@ from typing import Tuple  # added for Python 3.8 compatibility
 from gai.provider import Provider
 from gai.ollama_client import OllamaProvider
 from gai.openai_client import OpenAIProvider
+import json
+from pathlib import Path
 from gai.utils import (
     is_git_repository,
     get_staged_diff,
@@ -21,31 +23,84 @@ from gai.utils import (
 DEFAULT_ENDPOINT = "http://localhost:11434/api"
 DEFAULT_PROVIDER = "ollama"
 
+# Config file path
+CONFIG_DIR = Path.home() / ".config" / "gai-commit"
+CONFIG_FILE = CONFIG_DIR / "config.json"
+
+def load_config():
+    """Load configuration from config file."""
+    if not CONFIG_FILE.exists():
+        return {}
+    
+    try:
+        with open(CONFIG_FILE, 'r') as f:
+            return json.load(f)
+    except (json.JSONDecodeError, IOError):
+        return {}
+
+def save_config(config):
+    """Save configuration to config file."""
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    
+    try:
+        with open(CONFIG_FILE, 'w') as f:
+            json.dump(config, f)
+    except IOError:
+        print("Warning: Could not save configuration.")
+
 
 def setup_provider(provider_name: str, model: str) -> Provider:
-    from gai.ollama_client import DEFAULT_OLLAMA_MODEL
-
     """Setup and return the appropriate provider."""
-
-    provider_name = (provider_name or DEFAULT_PROVIDER).lower()
-
+    from gai.ollama_client import DEFAULT_OLLAMA_MODEL
+    
+    # Load saved config
+    config = load_config()
+    
+    # Prioritization order: 
+    # 1. Command line argument
+    # 2. Environment variable
+    # 3. Config file
+    # 4. Default
+    if provider_name:
+        # User specified provider on command line, highest priority
+        provider_name = provider_name.lower()
+    else:
+        # Check environment variable
+        env_provider = os.getenv("AI_PROVIDER")
+        if env_provider:
+            provider_name = env_provider.lower()
+        else:
+            # Check config file
+            provider_name = config.get("provider", DEFAULT_PROVIDER).lower()
+    
+    # Save the provider choice for future runs
+    os.environ["AI_PROVIDER"] = provider_name
+    config["provider"] = provider_name
+    save_config(config)
+    
+    # Check for saved model in config
+    saved_models = config.get("models", {})
+    saved_model = saved_models.get(provider_name)
+    
     if provider_name == "ollama":
-        model_to_use = model or DEFAULT_OLLAMA_MODEL
+        # Priority: command-line > config file > default
+        model_to_use = model or saved_model or DEFAULT_OLLAMA_MODEL
         endpoint_to_use = DEFAULT_ENDPOINT
         return OllamaProvider(model=model_to_use, endpoint=endpoint_to_use)
 
     elif provider_name == "openai":
         from gai.openai_client import DEFAULT_OPENAI_MODEL
 
-        api_key = os.getenv("OPEN_AI_API_KEY")
+        api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             api_key = input("Enter your OpenAI API key: ").strip()
             if not api_key:
                 print("OpenAI API key is required for the OpenAI provider.")
                 sys.exit(1)
-            os.environ["OPEN_AI_API_KEY"] = api_key
+            os.environ["OPENAI_API_KEY"] = api_key
 
-        model_to_use = model or DEFAULT_OPENAI_MODEL
+        # Priority: command-line > config file > default
+        model_to_use = model or saved_model or DEFAULT_OPENAI_MODEL
         return OpenAIProvider(model=model_to_use)
 
     else:
@@ -119,14 +174,17 @@ def main():
     parser.add_argument(
         "--provider",
         type=str,
-        default=DEFAULT_PROVIDER,
-        help=f"The provider to use for generating commit messages. Can be 'ollama' or 'openai'. Default: {DEFAULT_PROVIDER}",
+        help=f"The provider to use for generating commit messages. Can be 'ollama' or 'openai'. Default: {os.getenv('AI_PROVIDER', DEFAULT_PROVIDER)}",
     )
     parser.add_argument(
-        "model", nargs="?", help="The model to use for generating commit messages."
+        "model", 
+        nargs="?", 
+        help="The model to use for generating commit messages."
     )
     parser.add_argument(
-        "--oneline", action="store_true", help="Generate a single-line commit message."
+        "--oneline", 
+        action="store_true", 
+        help="Generate a single-line commit message."
     )
     args = parser.parse_args()
 
@@ -138,8 +196,18 @@ def main():
         )
         sys.exit(0)
 
+    # Load config and setup provider
+    config = load_config()
+    
     # Setup provider and generate initial message
     provider = setup_provider(args.provider, args.model)
+    
+    # If user specified a model, save it in config for that provider
+    if args.model:
+        if not "models" in config:
+            config["models"] = {}
+        config["models"][config["provider"]] = args.model
+        save_config(config)
 
     suggested_message = generate_commit_message(
         provider, staged_diff, oneline=args.oneline
