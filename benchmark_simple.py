@@ -7,6 +7,7 @@ import time
 import json
 import sys
 import os
+import argparse
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -15,35 +16,65 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from gai.openai_client import OpenAIProvider
 from gai.utils import get_staged_diff, is_git_repository
+from gai.cli import load_config
 
 
 def benchmark_openai_models():
     """Benchmark GPT-3.5 vs GPT-4 performance."""
+    
+    # Parse command line arguments again (for direct function calls)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--models",
+        nargs="+",
+        default=["gpt-3.5-turbo", "gpt-4o", "gpt-4o-mini", "o3"],
+        help="Models to benchmark",
+    )
+    parser.add_argument(
+        "--iterations",
+        type=int,
+        default=3,
+        help="Number of iterations per model",
+    )
+    parser.add_argument(
+        "--skip-git-check",
+        action="store_true",
+        help="Skip git repository check",
+    )
+    
+    # Parse known arguments only (ignore any unknown ones)
+    args, _ = parser.parse_known_args()
 
     # Load environment
     load_dotenv()
 
-    # Check if we're in a git repository
-    if not is_git_repository():
+    # Check if we're in a git repository (unless skipped)
+    if not args.skip_git_check and not is_git_repository():
         print(
             "❌ Not in a git repository. Please run from a git repository with staged changes."
         )
+        print("   To skip this check, use --skip-git-check (for testing purposes)")
         sys.exit(1)
 
-    # Get staged diff
-    staged_diff = get_staged_diff()
-    if not staged_diff:
-        print(
-            "❌ No staged changes found. Please stage some changes with 'git add' first."
-        )
-        sys.exit(1)
+    # Get staged diff (unless skipped)
+    if args.skip_git_check:
+        print("⚠️ Skipping git repository and staged changes check")
+        staged_diff = "# Example code for benchmarking\ndef hello_world():\n    print('Hello, World!')\n"
+    else:
+        staged_diff = get_staged_diff()
+        if not staged_diff:
+            print(
+                "❌ No staged changes found. Please stage some changes with 'git add' first."
+            )
+            print("   To skip this check, use --skip-git-check (for testing purposes)")
+            sys.exit(1)
 
     print(f"📄 Diff size: {len(staged_diff)} characters")
     print(f"📄 Diff lines: {len(staged_diff.splitlines())} lines")
     print("\n" + "=" * 60)
 
-    # Models to test
-    models = ["gpt-3.5-turbo", "gpt-4o", "gpt-4o-mini", "o3"]
+    # Models to test from arguments
+    models = args.models
     results = []
 
     for model in models:
@@ -51,13 +82,18 @@ def benchmark_openai_models():
         print("-" * 40)
 
         # Initialize provider
-        provider = OpenAIProvider(model=model)
+        try:
+            provider = OpenAIProvider(model=model)
+        except ValueError as e:
+            print(f"❌ Error: {e}")
+            continue
 
-        # Run 3 iterations for each model
+        # Run iterations based on command line argument
         model_results = []
+        iterations = args.iterations
 
-        for iteration in range(3):
-            print(f"  Iteration {iteration + 1}/3...", end=" ")
+        for iteration in range(iterations):
+            print(f"  Iteration {iteration + 1}/{iterations}...", end=" ")
 
             # Measure time
             start_time = time.time()
@@ -114,7 +150,7 @@ def benchmark_openai_models():
             print(f"\n  📊 {model} Summary:")
             print(f"    Average response time: {avg_time:.2f}s")
             print(f"    Average message length: {avg_length:.0f} characters")
-            print(f"    Success rate: {len(successful_runs)}/3")
+            print(f"    Success rate: {len(successful_runs)}/{iterations}")
 
             # Show sample message
             print(f"\n  📝 Sample message:")
@@ -267,13 +303,71 @@ def benchmark_openai_models():
 
 
 if __name__ == "__main__":
-    print("🚀 OpenAI Model Benchmark (GPT-3.5 vs GPT-4)")
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(
+        description="Benchmark OpenAI models for commit message generation"
+    )
+    parser.add_argument(
+        "--check-api-key",
+        action="store_true",
+        help="Check if OpenAI API key is available and exit",
+    )
+    parser.add_argument(
+        "--models",
+        nargs="+",
+        default=["gpt-3.5-turbo", "gpt-4o", "gpt-4o-mini", "o3"],
+        help="Models to benchmark (default: gpt-3.5-turbo gpt-4o gpt-4o-mini o3)",
+    )
+    parser.add_argument(
+        "--iterations",
+        type=int,
+        default=3,
+        help="Number of iterations per model (default: 3)",
+    )
+    parser.add_argument(
+        "--skip-git-check",
+        action="store_true",
+        help="Skip git repository and staged changes check (for testing)",
+    )
+    args = parser.parse_args()
+
+    print("🚀 OpenAI Model Benchmark")
     print("=" * 60)
 
-    # Check API key
+    # Check API key from environment or config file
     load_dotenv()
-    if not os.getenv("OPEN_AI_API_KEY"):
-        print("❌ API_KEY not found in .env file")
+    
+    # Get API key from environment or config file
+    api_key = os.getenv("OPENAI_API_KEY")
+    api_key_source = "environment"
+    
+    # If not found in environment, try the config file
+    if not api_key:
+        config = load_config()
+        api_keys = config.get("api_keys", {})
+        api_key = api_keys.get("openai")
+        if api_key:
+            api_key_source = "config file"
+        
+        # If found in config, set the environment variable for OpenAIProvider
+        if api_key:
+            os.environ["OPENAI_API_KEY"] = api_key
+    
+    # Print API key status if in check-api-key mode
+    if args.check_api_key:
+        if api_key:
+            print(f"✅ OpenAI API key found in {api_key_source}")
+            print(f"API key: {api_key[:4]}...{api_key[-4:]} (masked for security)")
+            sys.exit(0)
+    
+    # Final check if we have an API key
+    if not api_key:
+        print("❌ OPENAI_API_KEY not found in environment or config file")
+        print("Please set up your OpenAI API key first with:")
+        print("  export OPENAI_API_KEY=your-api-key")
+        print("  or run 'gai --provider openai' to save it to config")
         sys.exit(1)
 
-    benchmark_openai_models()
+    # Run benchmark if not in check-api-key mode
+    if not args.check_api_key:
+        benchmark_openai_models()
