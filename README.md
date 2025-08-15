@@ -4,22 +4,39 @@ AI-powered generator for high‑quality Conventional Commit messages from your s
 
 ## Quick Start
 
+### Install
 ```bash
 pip install gai-commit
-# Stage the files you want included (REQUIRED)
-git add path/to/file.py            # or: git add .
-# Default provider = Ollama (local)
-gai
-# Specify model (Ollama)
-gai llama3.2
-# Use OpenAI (needs OPEN_AI_API_KEY)
-gai --provider openai
-gai --provider openai gpt-4
-# One‑line (subject only)
-gai --oneline
 ```
 
-> You must stage changes first; otherwise the tool will have an empty diff.
+### 1. Using Ollama
+Prerequisites:
+```bash
+# Install Ollama (see https://ollama.com)
+# Pull at least one model (only needed once):
+ollama pull llama3.2
+# Ensure the Ollama daemon is running (starts automatically after install)
+```
+Usage:
+```bash
+git add path/to/file.py
+gai                 # uses default local model (e.g. llama3.2)
+gai deepseek-r1:8b  # specify another pulled model
+```
+
+### 2. Using OpenAI
+```bash
+export OPEN_AI_API_KEY=sk-your-key
+git add path/to/file.py
+gai --provider openai            # default OpenAI model (gpt-3.5-turbo)
+gai --provider openai gpt-5      # specify model
+```
+
+### Optional
+```bash
+# One-line (subject only)
+gai --oneline
+```
 
 ## What It Does
 
@@ -29,13 +46,6 @@ gai --oneline
 4. Cleans AI output (removes hidden <think> blocks) via [`gai.utils.clean_commit_message`](src/gai/utils.py).
 5. Interactive loop (Apply / Edit / Re‑generate / Quit) handled by [`gai.cli.handle_user_choice`](src/gai/cli.py).
 6. Commits with your approved message.
-
-## Environment Variables
-
-Only one is currently required for OpenAI:
-```dotenv
-OPEN_AI_API_KEY=sk-your-key
-```
 
 ## Interactive Flow
 
