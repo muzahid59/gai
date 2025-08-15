@@ -83,13 +83,14 @@ This is the description"""
 @patch("gai.cli.load_dotenv")  # Prevent .env loading
 @patch("gai.cli.load_config", return_value={})  # Mock empty config
 @patch("gai.cli.save_config")  # Mock config saving
+@patch("gai.cli.update_setting")  # Mock settings update
 @patch("gai.cli.OllamaProvider")
 @patch("threading.Thread")
 @patch(
     "builtins.input", side_effect=["http://input.endpoint", "a"]
 )  # Endpoint input, then apply
 def test_main_ollama_no_model_default(
-    mock_input, mock_thread, mock_OllamaProvider, mock_save_config, mock_load_config, mock_load_dotenv
+    mock_input, mock_thread, mock_OllamaProvider, mock_update_setting, mock_save_config, mock_load_config, mock_load_dotenv
 ):
     # Mock subprocess calls for git
     mock_subprocess_run = MagicMock()
@@ -137,10 +138,11 @@ def test_main_ollama_no_model_default(
 @patch.dict(os.environ, {"CHAT_URL": "http://env.endpoint"}, clear=True)
 @patch("gai.cli.load_config", return_value={})  # Mock empty config
 @patch("gai.cli.save_config")  # Mock config saving
+@patch("gai.cli.update_setting")  # Mock settings update
 @patch("gai.cli.OllamaProvider")
 @patch("threading.Thread")
 @patch("builtins.input", return_value="a")  # Only apply choice
-def test_main_ollama_with_model_cmdline(mock_input, mock_thread, mock_OllamaProvider, mock_save_config, mock_load_config):
+def test_main_ollama_with_model_cmdline(mock_input, mock_thread, mock_OllamaProvider, mock_update_setting, mock_save_config, mock_load_config):
     # Mock subprocess calls for git
     mock_subprocess_run = MagicMock()
 
@@ -186,10 +188,11 @@ def test_main_ollama_with_model_cmdline(mock_input, mock_thread, mock_OllamaProv
 @patch.dict(os.environ, {"OPENAI_API_KEY": "fake-key"}, clear=True)
 @patch("gai.cli.load_config", return_value={})  # Mock empty config
 @patch("gai.cli.save_config")  # Mock config saving
+@patch("gai.cli.update_setting")  # Mock settings update
 @patch("gai.cli.OpenAIProvider")
 @patch("threading.Thread")
 @patch("builtins.input", return_value="a")  # User chooses to apply
-def test_main_openai_provider_default(mock_input, mock_thread, mock_OpenAIProvider, mock_save_config, mock_load_config):
+def test_main_openai_provider_default(mock_input, mock_thread, mock_OpenAIProvider, mock_update_setting, mock_save_config, mock_load_config):
     # Mock subprocess calls for git
     mock_subprocess_run = MagicMock()
 
@@ -232,10 +235,11 @@ def test_main_openai_provider_default(mock_input, mock_thread, mock_OpenAIProvid
 @patch.dict(os.environ, {"OPENAI_API_KEY": "fake-key"}, clear=True)
 @patch("gai.cli.load_config", return_value={})  # Mock empty config
 @patch("gai.cli.save_config")  # Mock config saving
+@patch("gai.cli.update_setting")  # Mock settings update
 @patch("gai.cli.OpenAIProvider")
 @patch("threading.Thread")
 @patch("builtins.input", return_value="a")  # User chooses to apply
-def test_main_openai_provider_with_model(mock_input, mock_thread, mock_OpenAIProvider, mock_save_config, mock_load_config):
+def test_main_openai_provider_with_model(mock_input, mock_thread, mock_OpenAIProvider, mock_update_setting, mock_save_config, mock_load_config):
     # Mock subprocess calls for git
     mock_subprocess_run = MagicMock()
 
@@ -310,13 +314,14 @@ def test_main_exits_if_not_git_repo(
 @patch("gai.cli.load_dotenv")  # Prevent .env loading
 @patch("gai.cli.load_config", return_value={})  # Mock empty config
 @patch("gai.cli.save_config")  # Mock config saving
+@patch("gai.cli.update_setting")  # Mock settings update
 @patch("gai.cli.OpenAIProvider")
 @patch("threading.Thread")
 @patch(
     "builtins.input", side_effect=["sk-test-api-key", "a"]
 )  # API key input, then apply
 def test_main_openai_provider_interactive_api_key(
-    mock_input, mock_thread, mock_OpenAIProvider, mock_save_config, mock_load_config, mock_load_dotenv
+    mock_input, mock_thread, mock_OpenAIProvider, mock_update_setting, mock_save_config, mock_load_config, mock_load_dotenv
 ):
     # Mock subprocess calls for git
     mock_subprocess_run = MagicMock()

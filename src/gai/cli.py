@@ -48,59 +48,94 @@ def save_config(config):
     except IOError:
         print("Warning: Could not save configuration.")
 
+def update_setting(setting_type, provider_name=None, value=None):
+    """Update a setting in the config file.
+    
+    Args:
+        setting_type: Type of setting (provider, model, api_key)
+        provider_name: Provider name (required for model settings)
+        value: Value to store
+    """
+    config = load_config()
+    
+    if setting_type == "provider" and value:
+        config["provider"] = value
+    elif setting_type == "model" and provider_name and value:
+        if "models" not in config:
+            config["models"] = {}
+        config["models"][provider_name] = value
+    elif setting_type == "api_key" and provider_name and value:
+        if "api_keys" not in config:
+            config["api_keys"] = {}
+        config["api_keys"][provider_name] = value
+    
+    save_config(config)
+
 
 def setup_provider(provider_name: str, model: str) -> Provider:
     """Setup and return the appropriate provider."""
     from gai.ollama_client import DEFAULT_OLLAMA_MODEL
+    from gai.openai_client import DEFAULT_OPENAI_MODEL
     
     # Load saved config
     config = load_config()
     
-    # Prioritization order: 
-    # 1. Command line argument
-    # 2. Environment variable
-    # 3. Config file
-    # 4. Default
+    # Determine provider (in priority order)
     if provider_name:
-        # User specified provider on command line, highest priority
+        # 1. Command line argument (highest priority)
         provider_name = provider_name.lower()
     else:
-        # Check environment variable
+        # 2. Environment variable
         env_provider = os.getenv("AI_PROVIDER")
         if env_provider:
             provider_name = env_provider.lower()
         else:
-            # Check config file
+            # 3. Config file
             provider_name = config.get("provider", DEFAULT_PROVIDER).lower()
     
-    # Save the provider choice for future runs
+    # Save provider choice and set environment variable
+    update_setting("provider", value=provider_name)
     os.environ["AI_PROVIDER"] = provider_name
-    config["provider"] = provider_name
-    save_config(config)
     
-    # Check for saved model in config
+    # Get saved models and API keys from config
     saved_models = config.get("models", {})
-    saved_model = saved_models.get(provider_name)
+    saved_api_keys = config.get("api_keys", {})
     
     if provider_name == "ollama":
-        # Priority: command-line > config file > default
-        model_to_use = model or saved_model or DEFAULT_OLLAMA_MODEL
+        # Determine model to use (in priority order)
+        model_to_use = model or saved_models.get(provider_name) or DEFAULT_OLLAMA_MODEL
         endpoint_to_use = DEFAULT_ENDPOINT
+        
+        # Save model choice if specified on command line
+        if model:
+            update_setting("model", provider_name=provider_name, value=model_to_use)
+        
         return OllamaProvider(model=model_to_use, endpoint=endpoint_to_use)
 
     elif provider_name == "openai":
-        from gai.openai_client import DEFAULT_OPENAI_MODEL
-
-        api_key = os.getenv("OPENAI_API_KEY")
+        # Determine API key (in priority order)
+        api_key = os.getenv("OPENAI_API_KEY") or saved_api_keys.get(provider_name)
+        
+        # If no API key is found, prompt the user
         if not api_key:
             api_key = input("Enter your OpenAI API key: ").strip()
             if not api_key:
                 print("OpenAI API key is required for the OpenAI provider.")
                 sys.exit(1)
-            os.environ["OPENAI_API_KEY"] = api_key
-
-        # Priority: command-line > config file > default
-        model_to_use = model or saved_model or DEFAULT_OPENAI_MODEL
+            
+            # Save API key to config and set environment variable
+            update_setting("api_key", provider_name=provider_name, value=api_key)
+        
+        # Always set environment variable
+        os.environ["OPENAI_API_KEY"] = api_key
+        
+        # Determine model to use (in priority order)
+        model_to_use = model or saved_models.get(provider_name) or DEFAULT_OPENAI_MODEL
+        
+        # Save model choice if specified on command line
+        if model:
+            update_setting("model", provider_name=provider_name, value=model_to_use)
+        
         return OpenAIProvider(model=model_to_use)
 
     else:
@@ -196,18 +231,10 @@ def main():
         )
         sys.exit(0)
 
-    # Load config and setup provider
-    config = load_config()
-    
     # Setup provider and generate initial message
     provider = setup_provider(args.provider, args.model)
     
-    # If user specified a model, save it in config for that provider
-    if args.model:
-        if not "models" in config:
-            config["models"] = {}
-        config["models"][config["provider"]] = args.model
-        save_config(config)
+    # Note: Model saving is now handled within setup_provider
 
     suggested_message = generate_commit_message(
         provider, staged_diff, oneline=args.oneline
