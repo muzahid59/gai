@@ -1,6 +1,6 @@
 # gai-commit
 
-AI-powered generator for high-quality Conventional Commit messages from your staged Git changes. Works with both local Ollama models and OpenAI's API.
+AI-powered CLI tool to generate commit messages from your staged Git changes. Works with both local Ollama models and OpenAI's API.
 
 ## Installation
 
@@ -95,10 +95,6 @@ Your options:
 - **R**: Ask the AI to generate a new suggestion using the same diff
 - **Q**: Quit without committing
 
-## One-Line Mode
-
-Use `--oneline` for concise, single-line commit messages (subject only, no body).
-
 ## Troubleshooting
 
 ### Common Issues
@@ -107,11 +103,6 @@ Use `--oneline` for concise, single-line commit messages (subject only, no body)
 - **"Not a Git repository"**: Make sure you're inside a valid git repository
 - **"OPENAI_API_KEY environment variable not set"**: Set your OpenAI API key or use Ollama
 - **"Ollama connection refused"**: Make sure the Ollama daemon is running (`ollama serve`)
-
-### Environment Variables
-
-- `OPENAI_API_KEY`: Your OpenAI API key (for OpenAI provider)
-- `API_KEY`: Legacy fallback variable (for backward compatibility)
 
 ## Development
 
