@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: gai-commit
-Version: 0.1.0
+Version: 0.1.1
 Summary: An AI-powered git commit message generator.
 Author-email: Muzahid <mmsaddam@gmail.com>
 License: MIT License
