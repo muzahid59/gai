@@ -3,8 +3,6 @@ from openai import OpenAI
 from gai.provider import Provider
 
 DEFAULT_OPENAI_MODEL = "gpt-3.5-turbo"
-# DEFAULT_OPENAI_MODEL = "gpt-5"
-
 
 class OpenAIProvider(Provider):
     def __init__(self, model=None):
