@@ -25,3 +25,7 @@ dist/
 # Benchmarks / temp
 *.log
 *.tmp
+
+# package built artifacts
+*.whl
+*.egg
