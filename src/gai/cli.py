@@ -8,6 +8,7 @@ from typing import Tuple  # added for Python 3.8 compatibility
 from gai.provider import Provider
 from gai.ollama_client import OllamaProvider
 from gai.openai_client import OpenAIProvider
+from gai.logger import logger
 import json
 from pathlib import Path
 from gai.utils import (
@@ -77,6 +78,7 @@ def update_setting(setting_type, provider_name=None, value=None):
 
 def setup_provider(provider_name: str, model: str) -> Provider:
     """Setup and return the appropriate provider."""
+    logger.debug(f"Setting up provider: {provider_name}, model: {model}")
     from gai.ollama_client import DEFAULT_OLLAMA_MODEL, DEFAULT_MAX_TOKENS
     from gai.openai_client import DEFAULT_OPENAI_MODEL
 
@@ -116,6 +118,7 @@ def setup_provider(provider_name: str, model: str) -> Provider:
         if model:
             update_setting("model", provider_name=provider_name, value=model_to_use)
 
+        logger.info(f"Using Ollama provider with model: {model_to_use}")
         return OllamaProvider(
             model=model_to_use, 
             endpoint=endpoint_to_use,
@@ -146,6 +149,7 @@ def setup_provider(provider_name: str, model: str) -> Provider:
         if model:
             update_setting("model", provider_name=provider_name, value=model_to_use)
 
+        logger.info(f"Using OpenAI provider with model: {model_to_use}")
         return OpenAIProvider(model=model_to_use)
 
     else:
@@ -157,6 +161,7 @@ def generate_commit_message(
     provider: Provider, staged_diff: str, oneline: bool = False
 ) -> str:
     """Generate commit message with spinner."""
+    logger.debug(f"Generating commit message (oneline={oneline})")
     stop_spinner = threading.Event()
     model_name = getattr(provider, "model", "AI")
     spinner_thread = threading.Thread(
@@ -203,10 +208,12 @@ def handle_user_choice(
 
 
 def main():
+    logger.debug("Starting gai-commit CLI")
     load_dotenv()
 
     # Check git repository
     if not is_git_repository():
+        logger.error("Not in a Git repository")
         print(
             "\033[31mError: Not a Git repository. Please initialize a Git repository or navigate to one.\033[0m"
         )
@@ -233,30 +240,58 @@ def main():
         default=None,
         help="Maximum tokens per chunk for large diffs (default: 2000)"
     )
+    parser.add_argument(
+        "--debug", action="store_true", help="Enable debug logging (overrides auto-detection)"
+    )
+    parser.add_argument(
+        "--quiet", action="store_true", help="Suppress all logging except errors"
+    )
     args = parser.parse_args()
+
+    # Override logging mode if specified
+    if args.debug:
+        os.environ['GAI_DEBUG'] = '1'
+        # Reinitialize logger with debug mode - simple approach
+        import logging
+        logging.getLogger('gai-commit').setLevel(logging.DEBUG)
+        logger.info("Debug mode enabled via --debug flag")
+    elif args.quiet:
+        import logging
+        logging.getLogger('gai-commit').setLevel(logging.ERROR)
+
+    # Show mode information in development
+    if logger.is_development_mode():
+        logger.info("🔧 Development mode active")
 
     # Update config if max-tokens specified
     if args.max_tokens:
         config = load_config()
         config["max_tokens_per_chunk"] = args.max_tokens
         save_config(config)
+        logger.debug(f"Updated max_tokens_per_chunk to {args.max_tokens}")
 
     # Get staged diff
     staged_diff = get_staged_diff()
     if not staged_diff:
+        logger.error("No staged changes found")
         print(
             "No staged changes found. Please stage your changes with 'git add' first."
         )
         sys.exit(0)
+
+    logger.info("Successfully retrieved staged diff")
 
     # Setup provider and generate initial message
     provider = setup_provider(args.provider, args.model)
 
     # Note: Model saving is now handled within setup_provider
 
+    logger.debug("Starting commit message generation")
     suggested_message = generate_commit_message(
         provider, staged_diff, oneline=args.oneline
     )
+
+    logger.info("Commit message generated successfully")
 
     # Main interaction loop
     while True:

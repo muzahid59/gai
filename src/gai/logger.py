@@ -23,6 +23,11 @@ class GaiLogger:
     
     def _is_development_mode(self) -> bool:
         """Check if package is installed in development mode."""
+        # Check if production mode is forced via environment variable
+        force_production = os.getenv('GAI_FORCE_PRODUCTION', '').lower() in ('1', 'true', 'yes', 'on')
+        if force_production:
+            return False
+        
         try:
             # Method 1: Check if installed as editable
             dist = pkg_resources.get_distribution('gai-commit')

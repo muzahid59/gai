@@ -6,9 +6,12 @@ import re
 from pathlib import Path
 from typing import Optional, List
 
+from gai.logger import logger
+
 
 def is_git_repository() -> bool:
     """Checks if the current directory or any parent directory is a Git repository."""
+    logger.debug("Checking if current directory is a Git repository")
     try:
         subprocess.run(
             ["git", "rev-parse", "--is-inside-work-tree"],
@@ -16,15 +19,19 @@ def is_git_repository() -> bool:
             check=True,
             text=True,
         )
+        logger.debug("Git repository check: True")
         return True
     except subprocess.CalledProcessError:
+        logger.warning("Git repository check: False - not in a git repository")
         return False
     except FileNotFoundError:
+        logger.error("Git not found on system")
         return False
 
 
 def get_staged_diff() -> str:
     """Runs 'git diff --staged --minimal --unified=5' and returns the filtered output."""
+    logger.debug("Getting staged diff from Git")
     try:
         result = subprocess.run(
             ["git", "diff", "--staged", "--minimal", "--unified=5"],
@@ -47,9 +54,16 @@ def get_staged_diff() -> str:
                 continue
             filtered_lines.append(line)
 
-        return "\n".join(filtered_lines)
+        diff_content = "\n".join(filtered_lines)
+        logger.debug(f"Retrieved diff with {len(diff_content)} characters")
+        
+        if not diff_content.strip():
+            logger.warning("No staged changes found")
+        
+        return diff_content
 
     except FileNotFoundError:
+        logger.error("Git command not found")
         print(
             "\033[31mError: 'git' command not found.\033[0m\n"
             "Please ensure Git is installed and accessible in your system's PATH."
@@ -57,7 +71,9 @@ def get_staged_diff() -> str:
         sys.exit(1)
     except subprocess.CalledProcessError as e:
         if e.returncode == 1 and not e.stdout and not e.stderr:
+            logger.debug("Git diff returned empty (no staged changes)")
             return ""
+        logger.error(f"Git diff command failed: {e.stderr.strip()}")
         print(
             f"""\u001b[31mError getting git diff:\u001b[0m {e.stderr.strip()}
               Please ensure you have staged changes (e.g., using 'git add .') and Git is configured correctly."""
@@ -123,11 +139,15 @@ def clean_commit_message(message: str) -> str:
 
 def estimate_tokens(text: str) -> int:
     """Rough token estimation (1 token ≈ 4 characters for most models)."""
-    return len(text) // 4
+    tokens = len(text) // 4
+    logger.debug(f"Estimated {tokens} tokens for {len(text)} characters")
+    return tokens
 
 
 def split_diff_by_files(diff: str, max_tokens_per_chunk: int = 1000) -> List[str]:
     """Split diff by files, respecting token limits."""
+    logger.debug(f"Splitting diff into chunks with max {max_tokens_per_chunk} tokens each")
+    
     lines = diff.split('\n')
     chunks = []
     current_chunk = []
@@ -141,6 +161,7 @@ def split_diff_by_files(diff: str, max_tokens_per_chunk: int = 1000) -> List[str
         # If this is a new file header and we have content, start new chunk
         if re.match(file_header_pattern, line) and current_chunk:
             if current_tokens + line_tokens > max_tokens_per_chunk:
+                logger.debug(f"Creating chunk with {current_tokens} tokens")
                 chunks.append('\n'.join(current_chunk))
                 current_chunk = [line]
                 current_tokens = line_tokens
@@ -152,23 +173,31 @@ def split_diff_by_files(diff: str, max_tokens_per_chunk: int = 1000) -> List[str
         
         # If chunk is too large, split it
         if current_tokens > max_tokens_per_chunk:
+            logger.debug(f"Chunk size limit reached, creating chunk with {current_tokens} tokens")
             chunks.append('\n'.join(current_chunk))
             current_chunk = []
             current_tokens = 0
     
     # Add remaining chunk
     if current_chunk:
+        logger.debug(f"Adding final chunk with {current_tokens} tokens")
         chunks.append('\n'.join(current_chunk))
     
-    return [chunk for chunk in chunks if chunk.strip()]
+    filtered_chunks = [chunk for chunk in chunks if chunk.strip()]
+    logger.info(f"Split diff into {len(filtered_chunks)} chunks")
+    return filtered_chunks
 
 
 def aggregate_commit_messages(messages: List[str], oneline: bool = False) -> str:
     """Aggregate multiple commit messages into a coherent single message."""
+    logger.debug(f"Aggregating {len(messages)} commit messages (oneline={oneline})")
+    
     if not messages:
+        logger.warning("No messages to aggregate")
         return ""
     
     if len(messages) == 1:
+        logger.debug("Single message, returning as-is")
         return messages[0]
     
     # Extract types and scopes
@@ -199,6 +228,9 @@ def aggregate_commit_messages(messages: List[str], oneline: bool = False) -> str
             descriptions.append(first_line)
             if len(lines) > 1:
                 body_points.extend([line.strip() for line in lines[1:] if line.strip()])
+    
+    logger.debug(f"Extracted commit types: {commit_types}")
+    logger.debug(f"Extracted scopes: {scopes}")
     
     # Determine primary type (most common, with priority order for ties)
     if commit_types:
@@ -241,12 +273,16 @@ def aggregate_commit_messages(messages: List[str], oneline: bool = False) -> str
     subject = f"{primary_type}{scope_str}: {agg_description}"
     
     if oneline:
+        logger.info(f"Aggregated into oneline: {subject}")
         return subject
     
     # Add body with unique points
     unique_points = list(dict.fromkeys(body_points))  # Preserve order, remove duplicates
     if unique_points:
         body = '\n'.join(f"- {point.lstrip('- ')}" for point in unique_points[:5])  # Limit to 5 points
-        return f"{subject}\n\n{body}"
+        final_message = f"{subject}\n\n{body}"
+    else:
+        final_message = subject
     
-    return subject
+    logger.info(f"Aggregated into: {primary_type}{scope_str}")
+    return final_message
