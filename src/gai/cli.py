@@ -77,11 +77,14 @@ def update_setting(setting_type, provider_name=None, value=None):
 
 def setup_provider(provider_name: str, model: str) -> Provider:
     """Setup and return the appropriate provider."""
-    from gai.ollama_client import DEFAULT_OLLAMA_MODEL
+    from gai.ollama_client import DEFAULT_OLLAMA_MODEL, DEFAULT_MAX_TOKENS
     from gai.openai_client import DEFAULT_OPENAI_MODEL
 
     # Load saved config
     config = load_config()
+
+    # Get chunking settings
+    max_tokens = config.get("max_tokens_per_chunk", DEFAULT_MAX_TOKENS)
 
     # Determine provider (in priority order)
     if provider_name:
@@ -113,7 +116,11 @@ def setup_provider(provider_name: str, model: str) -> Provider:
         if model:
             update_setting("model", provider_name=provider_name, value=model_to_use)
 
-        return OllamaProvider(model=model_to_use, endpoint=endpoint_to_use)
+        return OllamaProvider(
+            model=model_to_use, 
+            endpoint=endpoint_to_use,
+            max_tokens_per_chunk=max_tokens
+        )
 
     elif provider_name == "openai":
         # Determine API key (in priority order)
@@ -220,7 +227,19 @@ def main():
     parser.add_argument(
         "--oneline", action="store_true", help="Generate a single-line commit message."
     )
+    parser.add_argument(
+        "--max-tokens", 
+        type=int, 
+        default=None,
+        help="Maximum tokens per chunk for large diffs (default: 2000)"
+    )
     args = parser.parse_args()
+
+    # Update config if max-tokens specified
+    if args.max_tokens:
+        config = load_config()
+        config["max_tokens_per_chunk"] = args.max_tokens
+        save_config(config)
 
     # Get staged diff
     staged_diff = get_staged_diff()

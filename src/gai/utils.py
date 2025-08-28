@@ -4,7 +4,7 @@ import sys
 import time
 import re
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 
 def is_git_repository() -> bool:
@@ -119,3 +119,134 @@ def clean_commit_message(message: str) -> str:
     cleaned = re.sub(r"\n\s*\n\s*\n", "\n\n", cleaned)
     cleaned = cleaned.strip()
     return cleaned
+
+
+def estimate_tokens(text: str) -> int:
+    """Rough token estimation (1 token ≈ 4 characters for most models)."""
+    return len(text) // 4
+
+
+def split_diff_by_files(diff: str, max_tokens_per_chunk: int = 1000) -> List[str]:
+    """Split diff by files, respecting token limits."""
+    lines = diff.split('\n')
+    chunks = []
+    current_chunk = []
+    current_tokens = 0
+    
+    file_header_pattern = r'^[+-]{3} [ab]/'
+    
+    for line in lines:
+        line_tokens = estimate_tokens(line)
+        
+        # If this is a new file header and we have content, start new chunk
+        if re.match(file_header_pattern, line) and current_chunk:
+            if current_tokens + line_tokens > max_tokens_per_chunk:
+                chunks.append('\n'.join(current_chunk))
+                current_chunk = [line]
+                current_tokens = line_tokens
+                continue
+        
+        # Add line to current chunk
+        current_chunk.append(line)
+        current_tokens += line_tokens
+        
+        # If chunk is too large, split it
+        if current_tokens > max_tokens_per_chunk:
+            chunks.append('\n'.join(current_chunk))
+            current_chunk = []
+            current_tokens = 0
+    
+    # Add remaining chunk
+    if current_chunk:
+        chunks.append('\n'.join(current_chunk))
+    
+    return [chunk for chunk in chunks if chunk.strip()]
+
+
+def aggregate_commit_messages(messages: List[str], oneline: bool = False) -> str:
+    """Aggregate multiple commit messages into a coherent single message."""
+    if not messages:
+        return ""
+    
+    if len(messages) == 1:
+        return messages[0]
+    
+    # Extract types and scopes
+    commit_types = []
+    scopes = set()
+    descriptions = []
+    body_points = []
+    
+    conventional_pattern = r'^(feat|fix|docs|style|refactor|perf|test|build|ci|chore)(?:\(([^)]+)\))?: (.+)$'
+    
+    for msg in messages:
+        lines = msg.strip().split('\n')
+        first_line = lines[0] if lines else ""
+        
+        match = re.match(conventional_pattern, first_line)
+        if match:
+            commit_type, scope, desc = match.groups()
+            commit_types.append(commit_type)
+            if scope:
+                scopes.add(scope)
+            descriptions.append(desc)
+            
+            # Extract body points
+            if len(lines) > 2:  # Skip empty line after subject
+                body_points.extend([line.strip() for line in lines[2:] if line.strip().startswith('-')])
+        else:
+            # Fallback for non-conventional commits
+            descriptions.append(first_line)
+            if len(lines) > 1:
+                body_points.extend([line.strip() for line in lines[1:] if line.strip()])
+    
+    # Determine primary type (most common, with priority order for ties)
+    if commit_types:
+        type_counts = {}
+        for t in commit_types:
+            type_counts[t] = type_counts.get(t, 0) + 1
+        
+        # Priority order for conventional commits
+        priority_order = ["feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore"]
+        
+        max_count = max(type_counts.values())
+        candidates = [t for t, count in type_counts.items() if count == max_count]
+        
+        # Pick the highest priority type among candidates
+        for priority_type in priority_order:
+            if priority_type in candidates:
+                primary_type = priority_type
+                break
+        else:
+            primary_type = candidates[0]  # Fallback
+    else:
+        primary_type = "feat"
+    
+    # Create scope string
+    scope_str = f"({','.join(sorted(scopes))})" if scopes else ""
+    
+    # Create aggregated description
+    if len(set(descriptions)) == 1:
+        # All descriptions are the same
+        agg_description = descriptions[0]
+    else:
+        # Multiple different changes
+        if len(commit_types) > 1 and len(set(commit_types)) > 1:
+            agg_description = "multiple improvements and fixes"
+        else:
+            # Take the most descriptive one or combine
+            agg_description = max(descriptions, key=len)[:40] + "..."
+    
+    # Build final message
+    subject = f"{primary_type}{scope_str}: {agg_description}"
+    
+    if oneline:
+        return subject
+    
+    # Add body with unique points
+    unique_points = list(dict.fromkeys(body_points))  # Preserve order, remove duplicates
+    if unique_points:
+        body = '\n'.join(f"- {point.lstrip('- ')}" for point in unique_points[:5])  # Limit to 5 points
+        return f"{subject}\n\n{body}"
+    
+    return subject

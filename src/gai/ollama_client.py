@@ -3,14 +3,17 @@ import sys
 from gai.provider import Provider
 
 DEFAULT_OLLAMA_MODEL = "llama3.2"
+DEFAULT_MAX_TOKENS = 50  # Conservative limit for context window
 
 
 class OllamaProvider(Provider):
-    def __init__(self, model, endpoint):
+    def __init__(self, model, endpoint, max_tokens_per_chunk=DEFAULT_MAX_TOKENS):
         self.model = model
         self.endpoint = endpoint
+        self.max_tokens_per_chunk = max_tokens_per_chunk
 
-    def generate_commit_message(self, diff, oneline: bool = False):
+    def _generate_single_chunk_message(self, diff_chunk: str, oneline: bool = False) -> str:
+        """Generate commit message for a single diff chunk."""
         # Unified system prompt (mirrors OpenAI provider prompt)
         system_prompt = (
             "You are to act as an expert author of git commit messages. "
@@ -38,6 +41,7 @@ class OllamaProvider(Provider):
             "- NO markdown formatting or code blocks\n"
             "- NO explanations or comments\n"
             "- NO quotation marks around the message\n"
+            "- FOCUS on this specific part of the changes\n"
         )
         if not oneline:
             system_prompt += (
@@ -58,7 +62,7 @@ class OllamaProvider(Provider):
                 "- NO body or footer.\n"
                 "- Keep the entire message concise and under 72 characters.\n"
             )
-        user_prompt = f"Generate a commit message for this git diff:\n\n{diff}"
+        user_prompt = f"Generate a commit message for this git diff:\n\n{diff_chunk}"
         json_payload = {
             "model": self.model,
             "messages": [
@@ -79,10 +83,45 @@ class OllamaProvider(Provider):
                     f"\n\033[31mError: Unexpected response format from Ollama.\033[0m"
                 )
                 print(f"Response: {full_response}")
-                sys.exit(1)
+                return ""
         except requests.exceptions.RequestException as e:
             print(
-                f"\n\u001b[31mError connecting to Ollama:\u001b[0m {e}\n"
-                f"Please ensure the Ollama server is running and accessible at {self.endpoint}."
+                f"\n\u001b[31mError connecting to Ollama:\u001b[0m {e}"
             )
-            sys.exit(1)
+            return ""
+
+    def generate_commit_message(self, diff, oneline: bool = False):
+        """Generate commit message, splitting large diffs if needed."""
+        from gai.utils import estimate_tokens, split_diff_by_files, aggregate_commit_messages
+        
+        total_tokens = estimate_tokens(diff)
+        print(f"Total tokens in diff: {total_tokens}")
+        
+        # If diff is small enough, use original method
+        if total_tokens <= self.max_tokens_per_chunk:
+            return self._generate_single_chunk_message(diff, oneline)
+        
+        print(f"Large diff detected ({total_tokens} tokens). Splitting into chunks...")
+        
+        # Split diff into manageable chunks
+        chunks = split_diff_by_files(diff, self.max_tokens_per_chunk)
+        
+        if not chunks:
+            return "chore: update files"
+        
+        print(f"Processing {len(chunks)} chunks...")
+        
+        # Generate messages for each chunk
+        chunk_messages = []
+        for i, chunk in enumerate(chunks):
+            print(f"  Processing chunk {i+1}/{len(chunks)}...")
+            message = self._generate_single_chunk_message(chunk, oneline)
+            if message:
+                chunk_messages.append(message)
+        
+        if not chunk_messages:
+            return "chore: update multiple files"
+        
+        # Aggregate results
+        print("Aggregating results...")
+        return aggregate_commit_messages(chunk_messages, oneline)
