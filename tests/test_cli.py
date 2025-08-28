@@ -125,7 +125,7 @@ def test_main_ollama_no_model_default(
 
         # Assertions
         mock_OllamaProvider.assert_called_once_with(
-            model="llama3.2", endpoint="http://localhost:11434/api"
+            model="llama3.2", endpoint="http://localhost:11434/api", max_tokens_per_chunk=2000
         )
         mock_provider_instance.generate_commit_message.assert_called_once_with(
             "diff content", oneline=False
@@ -182,7 +182,7 @@ def test_main_ollama_with_model_cmdline(
 
         # Assertions - should use the provided model with ollama provider
         mock_OllamaProvider.assert_called_once_with(
-            model="deepseek-r1:8b", endpoint="http://localhost:11434/api"
+            model="deepseek-r1:8b", endpoint="http://localhost:11434/api", max_tokens_per_chunk=2000
         )
         mock_provider_instance.generate_commit_message.assert_called_once_with(
             "diff content", oneline=False

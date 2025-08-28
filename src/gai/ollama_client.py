@@ -3,7 +3,7 @@ import sys
 from gai.provider import Provider
 
 DEFAULT_OLLAMA_MODEL = "llama3.2"
-DEFAULT_MAX_TOKENS = 50  # Conservative limit for context window
+DEFAULT_MAX_TOKENS = 2000  # Conservative limit for context window
 
 
 class OllamaProvider(Provider):
