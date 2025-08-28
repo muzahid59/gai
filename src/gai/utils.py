@@ -113,6 +113,8 @@ def spinner_animation(stop_event, model_name: str = "AI") -> None:
 
 def clean_commit_message(message: str) -> str:
     """Remove <think></think> tags and any content within them from the commit message."""
+    if message is None:
+        return ""
     cleaned = re.sub(r"<think>.*?</think>", "", message, flags=re.DOTALL)
     cleaned = re.sub(r"\n\s*\n\s*\n", "\n\n", cleaned)
     cleaned = cleaned.strip()
