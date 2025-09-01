@@ -64,6 +64,9 @@ gai --oneline
 
 # Combine with provider selection
 gai --provider openai --oneline
+
+# Configure maximum tokens per chunk for large diffs (default: 2000)
+gai --max-tokens 1500
 ```
 
 ## How It Works
