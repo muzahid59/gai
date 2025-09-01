@@ -5,7 +5,6 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "gai-commit"
 version = "0.1.2"
-
 authors = [
     { name = "Muzahid", email = "mmsaddam@gmail.com" },
 ]
@@ -26,21 +25,32 @@ dependencies = [
     "openai",
 ]
 
-# Exclude development/demo files from the package
-[tool.setuptools.exclude-package-data]
-"*" = [
-    "benchmark_*.py",
-    "run_benchmark.py",
-    "demo_*.py",
-    "test_*.py",
-    "tests/*",
-    "*.benchmark.*",
-    "examples/*"
-]
-
 [project.urls]
 "Homepage" = "https://github.com/muzahid59/gai"
 "Bug Tracker" = "https://github.com/muzahid59/gai/issues"
 
 [project.scripts]
 gai = "gai.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "black",
+    "flake8",
+]
+
+# Essential setuptools configuration
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = ["tests*", "*tests*"]
+
+# Package data exclusions (for wheel files)
+[tool.setuptools.exclude-package-data]
+"*" = [
+    "*.benchmark.*",
+    "*.test.*",
+    "test_*",
+]

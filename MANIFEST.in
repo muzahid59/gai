@@ -1,0 +1,15 @@
+include README.md
+include LICENSE
+include pyproject.toml
+recursive-include src *.py
+recursive-exclude tests *
+recursive-exclude benchmarks *
+recursive-exclude examples *
+exclude benchmark_*.py
+exclude run_benchmark.py
+exclude demo_*.py
+exclude test_*.py
+global-exclude *.pyc
+global-exclude __pycache__
+global-exclude .DS_Store
+global-exclude *.log
