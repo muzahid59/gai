@@ -25,7 +25,6 @@ dist/
 # Benchmarks / temp
 *.log
 *.tmp
-benchmarks/
 
 # package built artifacts
 *.whl
