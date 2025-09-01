@@ -12,7 +12,10 @@ __pycache__/
 build/
 dist/
 *.egg-info/
-*.benchmark_results_*
+
+# Benchmark result files
+benchmark_results_*.json
+benchmark_results_*
 
 # Environment / secrets
 .env
