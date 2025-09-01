@@ -26,6 +26,18 @@ dependencies = [
     "openai",
 ]
 
+# Exclude development/demo files from the package
+[tool.setuptools.exclude-package-data]
+"*" = [
+    "benchmark_*.py",
+    "run_benchmark.py",
+    "demo_*.py",
+    "test_*.py",
+    "tests/*",
+    "*.benchmark.*",
+    "examples/*"
+]
+
 [project.urls]
 "Homepage" = "https://github.com/muzahid59/gai"
 "Bug Tracker" = "https://github.com/muzahid59/gai/issues"
