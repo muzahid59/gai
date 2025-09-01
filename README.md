@@ -78,6 +78,31 @@ gai --max-tokens 1500
 5. **Interactive Workflow**: Presents options to apply, edit, regenerate or quit via [`gai.cli.handle_user_choice`](src/gai/cli.py)
 6. **Commit**: Applies your approved message with `git commit`
 
+### System Flow Digagram
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant CLI as gai CLI
+    participant Git as Git
+    participant Prov as Provider
+    participant LLM as Model
+
+    U->>CLI: Run "gai"
+    CLI->>Git: Get staged diff
+    Git-->>CLI: Diff text
+    CLI->>Prov: Init provider (ollama/openai)
+    CLI->>Prov: Request commit message (diff)
+    Prov->>LLM: Prompt + diff
+    LLM-->>Prov: Suggested message
+    Prov-->>CLI: Cleaned message
+    CLI->>U: Show suggestion (A/E/R/Q)
+    U->>CLI: Approve (A)
+    CLI->>Git: git commit -m "<message>"
+    Git-->>CLI: Commit done
+    CLI-->>U: Success
+```
+
 ## Interactive Workflow
 
 After generating a commit message suggestion, you'll see:
