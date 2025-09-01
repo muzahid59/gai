@@ -56,10 +56,10 @@ def get_staged_diff() -> str:
 
         diff_content = "\n".join(filtered_lines)
         logger.debug(f"Retrieved diff with {len(diff_content)} characters")
-        
+
         if not diff_content.strip():
             logger.warning("No staged changes found")
-        
+
         return diff_content
 
     except FileNotFoundError:
@@ -146,43 +146,47 @@ def estimate_tokens(text: str) -> int:
 
 def split_diff_by_files(diff: str, max_tokens_per_chunk: int = 1000) -> List[str]:
     """Split diff by files, respecting token limits."""
-    logger.debug(f"Splitting diff into chunks with max {max_tokens_per_chunk} tokens each")
-    
-    lines = diff.split('\n')
+    logger.debug(
+        f"Splitting diff into chunks with max {max_tokens_per_chunk} tokens each"
+    )
+
+    lines = diff.split("\n")
     chunks = []
     current_chunk = []
     current_tokens = 0
-    
-    file_header_pattern = r'^[+-]{3} [ab]/'
-    
+
+    file_header_pattern = r"^[+-]{3} [ab]/"
+
     for line in lines:
         line_tokens = estimate_tokens(line)
-        
+
         # If this is a new file header and we have content, start new chunk
         if re.match(file_header_pattern, line) and current_chunk:
             if current_tokens + line_tokens > max_tokens_per_chunk:
                 logger.debug(f"Creating chunk with {current_tokens} tokens")
-                chunks.append('\n'.join(current_chunk))
+                chunks.append("\n".join(current_chunk))
                 current_chunk = [line]
                 current_tokens = line_tokens
                 continue
-        
+
         # Add line to current chunk
         current_chunk.append(line)
         current_tokens += line_tokens
-        
+
         # If chunk is too large, split it
         if current_tokens > max_tokens_per_chunk:
-            logger.debug(f"Chunk size limit reached, creating chunk with {current_tokens} tokens")
-            chunks.append('\n'.join(current_chunk))
+            logger.debug(
+                f"Chunk size limit reached, creating chunk with {current_tokens} tokens"
+            )
+            chunks.append("\n".join(current_chunk))
             current_chunk = []
             current_tokens = 0
-    
+
     # Add remaining chunk
     if current_chunk:
         logger.debug(f"Adding final chunk with {current_tokens} tokens")
-        chunks.append('\n'.join(current_chunk))
-    
+        chunks.append("\n".join(current_chunk))
+
     filtered_chunks = [chunk for chunk in chunks if chunk.strip()]
     logger.info(f"Split diff into {len(filtered_chunks)} chunks")
     return filtered_chunks
@@ -191,27 +195,27 @@ def split_diff_by_files(diff: str, max_tokens_per_chunk: int = 1000) -> List[str
 def aggregate_commit_messages(messages: List[str], oneline: bool = False) -> str:
     """Aggregate multiple commit messages into a coherent single message."""
     logger.debug(f"Aggregating {len(messages)} commit messages (oneline={oneline})")
-    
+
     if not messages:
         logger.warning("No messages to aggregate")
         return ""
-    
+
     if len(messages) == 1:
         logger.debug("Single message, returning as-is")
         return messages[0]
-    
+
     # Extract types and scopes
     commit_types = []
     scopes = set()
     descriptions = []
     body_points = []
-    
-    conventional_pattern = r'^(feat|fix|docs|style|refactor|perf|test|build|ci|chore)(?:\(([^)]+)\))?: (.+)$'
-    
+
+    conventional_pattern = r"^(feat|fix|docs|style|refactor|perf|test|build|ci|chore)(?:\(([^)]+)\))?: (.+)$"
+
     for msg in messages:
-        lines = msg.strip().split('\n')
+        lines = msg.strip().split("\n")
         first_line = lines[0] if lines else ""
-        
+
         match = re.match(conventional_pattern, first_line)
         if match:
             commit_type, scope, desc = match.groups()
@@ -219,31 +223,44 @@ def aggregate_commit_messages(messages: List[str], oneline: bool = False) -> str
             if scope:
                 scopes.add(scope)
             descriptions.append(desc)
-            
+
             # Extract body points
             if len(lines) > 2:  # Skip empty line after subject
-                body_points.extend([line.strip() for line in lines[2:] if line.strip().startswith('-')])
+                body_points.extend(
+                    [line.strip() for line in lines[2:] if line.strip().startswith("-")]
+                )
         else:
             # Fallback for non-conventional commits
             descriptions.append(first_line)
             if len(lines) > 1:
                 body_points.extend([line.strip() for line in lines[1:] if line.strip()])
-    
+
     logger.debug(f"Extracted commit types: {commit_types}")
     logger.debug(f"Extracted scopes: {scopes}")
-    
+
     # Determine primary type (most common, with priority order for ties)
     if commit_types:
         type_counts = {}
         for t in commit_types:
             type_counts[t] = type_counts.get(t, 0) + 1
-        
+
         # Priority order for conventional commits
-        priority_order = ["feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore"]
-        
+        priority_order = [
+            "feat",
+            "fix",
+            "docs",
+            "style",
+            "refactor",
+            "perf",
+            "test",
+            "build",
+            "ci",
+            "chore",
+        ]
+
         max_count = max(type_counts.values())
         candidates = [t for t, count in type_counts.items() if count == max_count]
-        
+
         # Pick the highest priority type among candidates
         for priority_type in priority_order:
             if priority_type in candidates:
@@ -253,10 +270,10 @@ def aggregate_commit_messages(messages: List[str], oneline: bool = False) -> str
             primary_type = candidates[0]  # Fallback
     else:
         primary_type = "feat"
-    
+
     # Create scope string
     scope_str = f"({','.join(sorted(scopes))})" if scopes else ""
-    
+
     # Create aggregated description
     if len(set(descriptions)) == 1:
         # All descriptions are the same
@@ -268,21 +285,25 @@ def aggregate_commit_messages(messages: List[str], oneline: bool = False) -> str
         else:
             # Take the most descriptive one or combine
             agg_description = max(descriptions, key=len)[:40] + "..."
-    
+
     # Build final message
     subject = f"{primary_type}{scope_str}: {agg_description}"
-    
+
     if oneline:
         logger.info(f"Aggregated into oneline: {subject}")
         return subject
-    
+
     # Add body with unique points
-    unique_points = list(dict.fromkeys(body_points))  # Preserve order, remove duplicates
+    unique_points = list(
+        dict.fromkeys(body_points)
+    )  # Preserve order, remove duplicates
     if unique_points:
-        body = '\n'.join(f"- {point.lstrip('- ')}" for point in unique_points[:5])  # Limit to 5 points
+        body = "\n".join(
+            f"- {point.lstrip('- ')}" for point in unique_points[:5]
+        )  # Limit to 5 points
         final_message = f"{subject}\n\n{body}"
     else:
         final_message = subject
-    
+
     logger.info(f"Aggregated into: {primary_type}{scope_str}")
     return final_message

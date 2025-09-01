@@ -17,7 +17,8 @@ class OpenAIProvider(Provider):
         system_prompt = (
             "You are to act as an expert author of git commit messages. "
             "Your mission is to create clean and concise commit messages following the Conventional Commit specification. "
-            "\n\nI will provide you with the output of 'git diff --staged' and you must convert it into a proper commit message.\n\n"
+            "\n\nI will provide you with the output of 'git diff --staged' and you must convert it "
+            "into a proper commit message.\n\n"
             "**COMMIT FORMAT RULES:**\n"
             "- Use ONLY these conventional commit keywords: fix, feat, build, chore, ci, docs, style, refactor, perf, test\n"
             "- Format: <type>[optional scope]: <description>\n"

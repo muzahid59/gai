@@ -120,9 +120,9 @@ def setup_provider(provider_name: str, model: str) -> Provider:
 
         logger.info(f"Using Ollama provider with model: {model_to_use}")
         return OllamaProvider(
-            model=model_to_use, 
+            model=model_to_use,
             endpoint=endpoint_to_use,
-            max_tokens_per_chunk=max_tokens
+            max_tokens_per_chunk=max_tokens,
         )
 
     elif provider_name == "openai":
@@ -226,7 +226,8 @@ def main():
     parser.add_argument(
         "--provider",
         type=str,
-        help=f"The provider to use for generating commit messages. Can be 'ollama' or 'openai'. Default: {os.getenv('AI_PROVIDER', DEFAULT_PROVIDER)}",
+        help=f"The provider to use for generating commit messages. Can be 'ollama' or 'openai'. "
+        f"Default: {os.getenv('AI_PROVIDER', DEFAULT_PROVIDER)}",
     )
     parser.add_argument(
         "model", nargs="?", help="The model to use for generating commit messages."
@@ -235,13 +236,15 @@ def main():
         "--oneline", action="store_true", help="Generate a single-line commit message."
     )
     parser.add_argument(
-        "--max-tokens", 
-        type=int, 
+        "--max-tokens",
+        type=int,
         default=None,
-        help="Maximum tokens per chunk for large diffs (default: 2000)"
+        help="Maximum tokens per chunk for large diffs (default: 2000)",
     )
     parser.add_argument(
-        "--debug", action="store_true", help="Enable debug logging (overrides auto-detection)"
+        "--debug",
+        action="store_true",
+        help="Enable debug logging (overrides auto-detection)",
     )
     parser.add_argument(
         "--quiet", action="store_true", help="Suppress all logging except errors"
@@ -250,14 +253,16 @@ def main():
 
     # Override logging mode if specified
     if args.debug:
-        os.environ['GAI_DEBUG'] = '1'
+        os.environ["GAI_DEBUG"] = "1"
         # Reinitialize logger with debug mode - simple approach
         import logging
-        logging.getLogger('gai-commit').setLevel(logging.DEBUG)
+
+        logging.getLogger("gai-commit").setLevel(logging.DEBUG)
         logger.info("Debug mode enabled via --debug flag")
     elif args.quiet:
         import logging
-        logging.getLogger('gai-commit').setLevel(logging.ERROR)
+
+        logging.getLogger("gai-commit").setLevel(logging.ERROR)
 
     # Show mode information in development
     if logger.is_development_mode():
@@ -300,9 +305,13 @@ def main():
         print(suggested_message)
         print("---")
 
-        choice = input(
-            "\u001b[1m[A]\u001b[0mpply, \u001b[1m[E]\u001b[0mdit, \u001b[1m[R]\u001b[0m-generate, or \u001b[1m[Q]\u001b[0muit? (a/e/r/q) "
-        ).lower()
+        prompt = (
+            "\u001b[1m[A]\u001b[0mpply, "
+            "\u001b[1m[E]\u001b[0mdit, "
+            "\u001b[1m[R]\u001b[0m-generate, or "
+            "\u001b[1m[Q]\u001b[0muit? (a/e/r/q) "
+        )
+        choice = input(prompt).lower()
 
         suggested_message, should_continue = handle_user_choice(
             choice, suggested_message, provider, staged_diff, oneline=args.oneline
