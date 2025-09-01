@@ -226,8 +226,7 @@ def main():
     parser.add_argument(
         "--provider",
         type=str,
-        help=f"The provider to use for generating commit messages. Can be 'ollama' or 'openai'. "
-        f"Default: {os.getenv('AI_PROVIDER', DEFAULT_PROVIDER)}",
+        help=f"Provider for commit messages. 'ollama' or 'openai'. Default: {os.getenv('AI_PROVIDER', DEFAULT_PROVIDER)}",
     )
     parser.add_argument(
         "model", nargs="?", help="The model to use for generating commit messages."
@@ -305,13 +304,9 @@ def main():
         print(suggested_message)
         print("---")
 
-        prompt = (
-            "\u001b[1m[A]\u001b[0mpply, "
-            "\u001b[1m[E]\u001b[0mdit, "
-            "\u001b[1m[R]\u001b[0m-generate, or "
-            "\u001b[1m[Q]\u001b[0muit? (a/e/r/q) "
-        )
-        choice = input(prompt).lower()
+        choice = input(
+            "\u001b[1m[A]\u001b[0mpply, \u001b[1m[E]\u001b[0mdit, \u001b[1m[R]\u001b[0m-generate, or \u001b[1m[Q]\u001b[0muit? (a/e/r/q) "
+        ).lower()
 
         suggested_message, should_continue = handle_user_choice(
             choice, suggested_message, provider, staged_diff, oneline=args.oneline
