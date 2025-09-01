@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """
-Simple benchmark comparing OpenAI GPT-3.5 vs GPT-4 performance.
+Simple benchmark comparing OpenAI models performance.
+
+Adds automatic fallback to a synthetic demo diff when:
+- Not in a git repo
+- No staged changes found
+- --force-sample flag supplied
 """
 
 import time
@@ -11,363 +16,283 @@ import argparse
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Add the src directory to Python path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+# Add the src directory to Python path (project root assumed one level up)
+root_dir = Path(__file__).parent.parent
+src_dir = root_dir / "src"
+sys.path.insert(0, str(src_dir))
 
 from gai.openai_client import OpenAIProvider
 from gai.utils import get_staged_diff, is_git_repository
 from gai.cli import load_config
 
 
-def benchmark_openai_models():
-    """Benchmark GPT-3.5 vs GPT-4 performance."""
+DEMO_DIFF = """--- a/src/example/math.py
++++ b/src/example/math.py
+@@ -1,6 +1,17 @@
+-def add(a, b):
+-    return a+b
++def add(a: int, b: int) -> int:
++    \"\"\"Add two integers with validation.\"\"\"
++    if a is None or b is None:
++        raise ValueError("Inputs cannot be None")
++    return a + b
+ 
+-def mul(a, b):
+-    return a*b
++def mul(a: int, b: int) -> int:
++    \"\"\"Multiply two integers.\"\"\"
++    return a * b
++
++def div(a: int, b: int) -> float:
++    \"\"\"Safe division that avoids ZeroDivisionError.\"\"\"
++    if b == 0:
++        return 0.0
++    return a / b
++
++PI = 3.14159
+ 
+--- a/README.md
++++ b/README.md
+@@ -10,6 +10,12 @@ Features
+ - Fast
+ - Simple
+ 
++New Additions
++-------------
++- Safer math helpers
++- Type hints
++- Division support
++
+--- a/src/example/__init__.py
++++ b/src/example/__init__.py
+@@ -1,2 +1,5 @@
+-__all__ = ["add", "mul"]
++__all__ = ["add", "mul", "div", "PI"]
++
++VERSION = "0.2.0"
++
++# Updated exports for new functionality
+"""
 
-    # Parse command line arguments again (for direct function calls)
-    parser = argparse.ArgumentParser()
+
+def _resolve_diff(args) -> tuple[str, bool]:
+    """Return a diff string and whether it's a demo."""
+    if args.force_sample:
+        print("💡 Using demo diff (forced).")
+        return DEMO_DIFF, True
+
+    if not is_git_repository():
+        print("⚠️  Not a git repo: falling back to demo diff.")
+        return DEMO_DIFF, True
+
+    diff = get_staged_diff()
+    if not diff.strip():
+        print("⚠️  No staged changes: falling back to demo diff.")
+        return DEMO_DIFF, True
+
+    return diff, False
+
+
+def benchmark_openai_models():
+    """Benchmark OpenAI models on commit message generation."""
+    parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument(
         "--models",
         nargs="+",
-        default=["gpt-3.5-turbo", "gpt-4o", "gpt-4o-mini", "o3"],
-        help="Models to benchmark",
+        default=["gpt-3.5-turbo", "gpt-4o-mini", "gpt-4o", "gpt-5"],
+        help="Models to benchmark (space separated)",
     )
     parser.add_argument(
         "--iterations",
         type=int,
         default=3,
-        help="Number of iterations per model",
+        help="Iterations per model",
     )
     parser.add_argument(
-        "--skip-git-check",
+        "--force-sample",
         action="store_true",
-        help="Skip git repository check",
+        help="Always use built‑in demo diff (ignore git)",
     )
-
-    # Parse known arguments only (ignore any unknown ones)
     args, _ = parser.parse_known_args()
 
-    # Load environment
     load_dotenv()
 
-    # Check if we're in a git repository (unless skipped)
-    if not args.skip_git_check and not is_git_repository():
-        print(
-            "❌ Not in a git repository. Please run from a git repository with staged changes."
-        )
-        print("   To skip this check, use --skip-git-check (for testing purposes)")
-        sys.exit(1)
+    diff, is_demo = _resolve_diff(args)
 
-    # Get staged diff (unless skipped)
-    if args.skip_git_check:
-        print("⚠️ Skipping git repository and staged changes check")
-        staged_diff = "# Example code for benchmarking\ndef hello_world():\n    print('Hello, World!')\n"
-    else:
-        staged_diff = get_staged_diff()
-        if not staged_diff:
-            print(
-                "❌ No staged changes found. Please stage some changes with 'git add' first."
-            )
-            print("   To skip this check, use --skip-git-check (for testing purposes)")
-            sys.exit(1)
+    print(f"📄 Using {'demo' if is_demo else 'staged'} diff")
+    print(f"   Lines: {len(diff.splitlines())}  Chars: {len(diff)}")
+    print("=" * 60)
 
-    print(f"📄 Diff size: {len(staged_diff)} characters")
-    print(f"📄 Diff lines: {len(staged_diff.splitlines())} lines")
-    print("\n" + "=" * 60)
-
-    # Models to test from arguments
-    models = args.models
     results = []
-
-    for model in models:
-        print(f"\n🤖 Testing {model}...")
+    for model in args.models:
+        print(f"\n🤖 {model}")
         print("-" * 40)
-
-        # Initialize provider
         try:
             provider = OpenAIProvider(model=model)
         except ValueError as e:
-            print(f"❌ Error: {e}")
+            print(f"❌ Init error: {e}")
             continue
 
-        # Run iterations based on command line argument
-        model_results = []
-        iterations = args.iterations
-
-        for iteration in range(iterations):
-            print(f"  Iteration {iteration + 1}/{iterations}...", end=" ")
-
-            # Measure time
-            start_time = time.time()
-
+        model_runs = []
+        for i in range(args.iterations):
+            print(f"  Iter {i+1}/{args.iterations} ... ", end="")
+            start = time.time()
             try:
-                commit_message = provider.generate_commit_message(staged_diff)
-                end_time = time.time()
-
-                response_time = end_time - start_time
-                message_length = len(commit_message)
-
-                model_results.append(
+                msg = provider.generate_commit_message(diff)
+                dur = time.time() - start
+                model_runs.append(
                     {
                         "model": model,
-                        "iteration": iteration + 1,
-                        "response_time": response_time,
-                        "message_length": message_length,
-                        "message": commit_message.strip(),
+                        "iteration": i + 1,
+                        "response_time": dur,
+                        "message_length": len(msg),
+                        "message": msg.strip(),
                         "success": True,
                     }
                 )
-
-                print(f"✅ {response_time:.2f}s")
-
-            except Exception as e:
-                print(f"❌ Error: {e}")
-                model_results.append(
+                print(f"✅ {dur:.2f}s")
+            except Exception as ex:
+                print(f"❌ {ex}")
+                model_runs.append(
                     {
                         "model": model,
-                        "iteration": iteration + 1,
+                        "iteration": i + 1,
                         "response_time": None,
                         "message_length": 0,
                         "message": "",
                         "success": False,
-                        "error": str(e),
+                        "error": str(ex),
                     }
                 )
+            time.sleep(0.6)
 
-            # Small delay between requests
-            time.sleep(1)
-
-        results.extend(model_results)
-
-        # Show results for this model
-        successful_runs = [r for r in model_results if r["success"]]
-        if successful_runs:
-            avg_time = sum(r["response_time"] for r in successful_runs) / len(
-                successful_runs
-            )
-            avg_length = sum(r["message_length"] for r in successful_runs) / len(
-                successful_runs
-            )
-
-            print(f"\n  📊 {model} Summary:")
-            print(f"    Average response time: {avg_time:.2f}s")
-            print(f"    Average message length: {avg_length:.0f} characters")
-            print(f"    Success rate: {len(successful_runs)}/{iterations}")
-
-            # Show sample message
-            print(f"\n  📝 Sample message:")
-            sample_message = successful_runs[0]["message"]
-            # Truncate if too long
-            if len(sample_message) > 200:
-                sample_message = sample_message[:200] + "..."
-            print(f"    {sample_message}")
+        results.extend(model_runs)
+        ok = [r for r in model_runs if r["success"]]
+        if ok:
+            avg_t = sum(r["response_time"] for r in ok) / len(ok)
+            avg_len = sum(r["message_length"] for r in ok) / len(ok)
+            print(f"  📊 Avg time: {avg_t:.2f}s  Avg len: {avg_len:.0f} chars  Success: {len(ok)}/{args.iterations}")
+            sample = ok[0]["message"]
+            if len(sample) > 160:
+                sample = sample[:160] + "..."
+            print(f"  📝 Sample: {sample}")
         else:
-            print(f"  ❌ All attempts failed for {model}")
+            print("  ❌ All attempts failed")
 
-    # Generate comparison report
-    print("\n" + "=" * 60)
-    print("📈 COMPARISON RESULTS")
-    print("=" * 60)
-
-    # Filter successful results
-    successful_results = [r for r in results if r["success"]]
-
-    if not successful_results:
-        print("❌ No successful results to compare")
+    success = [r for r in results if r["success"]]
+    if not success:
+        print("\n❌ No successful runs.")
         return
 
-    # Group by model
-    gpt35_results = [r for r in successful_results if r["model"] == "gpt-3.5-turbo"]
-    gpt4o_results = [r for r in successful_results if r["model"] == "gpt-4o"]
-    gpt4o_mini_results = [r for r in successful_results if r["model"] == "gpt-4o-mini"]
-    o3_results = [r for r in successful_results if r["model"] == "o3"]
+    # Simple comparison
+    from collections import defaultdict
+    bucket = defaultdict(list)
+    for r in success:
+        bucket[r["model"]].append(r)
 
-    # Calculate averages for each model
-    model_stats = {}
-    for model_name, model_results in [
-        ("gpt-3.5-turbo", gpt35_results),
-        ("gpt-4o", gpt4o_results),
-        ("gpt-4o-mini", gpt4o_mini_results),
-        ("o3", o3_results),
-    ]:
-        if model_results:
-            model_stats[model_name] = {
-                "avg_time": sum(r["response_time"] for r in model_results)
-                / len(model_results),
-                "avg_length": sum(r["message_length"] for r in model_results)
-                / len(model_results),
-                "count": len(model_results),
-            }
-
-    if len(model_stats) >= 2:
-        print(f"\n⚡ Speed Comparison:")
-        sorted_by_speed = sorted(model_stats.items(), key=lambda x: x[1]["avg_time"])
-
-        for i, (model, stats) in enumerate(sorted_by_speed):
-            if i == 0:
-                print(f"  🏆 {model}: {stats['avg_time']:.2f}s (fastest)")
-            else:
-                slowdown = stats["avg_time"] / sorted_by_speed[0][1]["avg_time"]
-                print(
-                    f"  {i+1}. {model}: {stats['avg_time']:.2f}s ({slowdown:.1f}x slower)"
-                )
-
-        print(f"\n📏 Message Length Comparison:")
-        sorted_by_length = sorted(
-            model_stats.items(), key=lambda x: x[1]["avg_length"], reverse=True
-        )
-
-        for i, (model, stats) in enumerate(sorted_by_length):
-            if i == 0:
-                print(f"  📝 {model}: {stats['avg_length']:.0f} chars (most detailed)")
-            else:
-                print(f"  {i+1}. {model}: {stats['avg_length']:.0f} chars")
-
-        # Updated cost estimation with current pricing
-        # Approximate pricing (as of 2024):
-        # GPT-3.5-turbo: $0.0005/1K input tokens, $0.0015/1K output tokens
-        # GPT-4o: $0.0025/1K input tokens, $0.01/1K output tokens
-        # GPT-4o-mini: $0.00015/1K input tokens, $0.0006/1K output tokens
-        # o3: $0.06/1K input tokens, $0.24/1K output tokens (premium reasoning model)
-
-        pricing = {
-            "gpt-3.5-turbo": {"input": 0.0005, "output": 0.0015},
-            "gpt-4o": {"input": 0.0025, "output": 0.01},
-            "gpt-4o-mini": {"input": 0.00015, "output": 0.0006},
-            "o3": {"input": 0.06, "output": 0.24},
+    stats = {}
+    for m, rows in bucket.items():
+        stats[m] = {
+            "avg_time": sum(r["response_time"] for r in rows) / len(rows),
+            "avg_len": sum(r["message_length"] for r in rows) / len(rows),
+            "count": len(rows),
         }
 
-        estimated_input_tokens = len(staged_diff) // 4
-        estimated_output_tokens = 50
+    print("\n=== SUMMARY ===")
+    fastest = sorted(stats.items(), key=lambda x: x[1]["avg_time"])
+    print("⚡ Speed:")
+    for i, (m, s) in enumerate(fastest):
+        tag = "🏆" if i == 0 else " "
+        print(f"  {tag} {m}: {s['avg_time']:.2f}s")
 
-        print(f"\n💰 Estimated Cost per Request:")
-        cost_comparison = []
+    detailed = sorted(stats.items(), key=lambda x: x[1]["avg_len"], reverse=True)
+    print("\n📝 Detail (length):")
+    for i, (m, s) in enumerate(detailed):
+        tag = "🏆" if i == 0 else " "
+        print(f"  {tag} {m}: {s['avg_len']:.0f} chars")
 
-        for model in model_stats.keys():
-            if model in pricing:
-                cost = (
-                    estimated_input_tokens * pricing[model]["input"]
-                    + estimated_output_tokens * pricing[model]["output"]
-                ) / 1000
-                cost_comparison.append((model, cost))
-                print(f"  {model}: ~${cost:.4f}")
-
-        if len(cost_comparison) >= 2:
-            cheapest = min(cost_comparison, key=lambda x: x[1])
-            most_expensive = max(cost_comparison, key=lambda x: x[1])
-            ratio = most_expensive[1] / cheapest[1]
-            print(
-                f"  💡 {most_expensive[0]} is {ratio:.0f}x more expensive than {cheapest[0]}"
-            )
-
-    # Save detailed results
-    timestamp = time.strftime("%Y%m%d_%H%M%S")
-    results_file = f"benchmark_results_{timestamp}.json"
-
-    with open(results_file, "w") as f:
+    # Save results
+    ts = time.strftime("%Y%m%d_%H%M%S")
+    out_file = f"benchmark_results_{ts}.json"
+    with open(out_file, "w") as f:
         json.dump(
             {
-                "timestamp": timestamp,
-                "diff_size": len(staged_diff),
-                "diff_lines": len(staged_diff.splitlines()),
+                "timestamp": ts,
+                "demo_diff": is_demo,
+                "diff_lines": len(diff.splitlines()),
                 "results": results,
+                "stats": stats,
             },
             f,
             indent=2,
         )
+    print(f"\n💾 Saved: {out_file}")
 
-    print(f"\n💾 Detailed results saved to: {results_file}")
 
-    # Updated recommendations for all 4 models
-    print(f"\n💡 RECOMMENDATIONS:")
-    if len(model_stats) >= 2:
-        fastest_model = min(model_stats.items(), key=lambda x: x[1]["avg_time"])
-        cheapest_model = (
-            min(cost_comparison, key=lambda x: x[1]) if cost_comparison else None
-        )
-        most_detailed = max(model_stats.items(), key=lambda x: x[1]["avg_length"])
-
-        print(
-            f"  • ⚡ Fastest: {fastest_model[0]} ({fastest_model[1]['avg_time']:.2f}s)"
-        )
-        if cheapest_model:
-            print(
-                f"  • 💰 Most cost-effective: {cheapest_model[0]} (~${cheapest_model[1]:.4f})"
-            )
-        print(
-            f"  • 📝 Most detailed: {most_detailed[0]} ({most_detailed[1]['avg_length']:.0f} chars)"
-        )
-        print(
-            f"  • 🎯 For daily use: gpt-4o-mini (good balance of speed, cost, quality)"
-        )
-        print(f"  • 🧠 For complex reasoning: o3 (premium model for difficult commits)")
-        print(f"  • ⚖️ For balanced performance: gpt-4o (good quality, reasonable cost)")
+def _load_api_key():
+    load_dotenv()
+    key = os.getenv("OPENAI_API_KEY")
+    if key:
+        return True
+    config = load_config()
+    key = config.get("api_keys", {}).get("openai")
+    if key:
+        os.environ["OPENAI_API_KEY"] = key
+        return True
+    return False
 
 
 if __name__ == "__main__":
-    # Parse command line arguments
-    parser = argparse.ArgumentParser(
-        description="Benchmark OpenAI models for commit message generation"
-    )
-    parser.add_argument(
-        "--check-api-key",
-        action="store_true",
-        help="Check if OpenAI API key is available and exit",
-    )
+    parser = argparse.ArgumentParser(description="Benchmark OpenAI models.")
     parser.add_argument(
         "--models",
         nargs="+",
-        default=["gpt-3.5-turbo", "gpt-4o", "gpt-4o-mini", "o3"],
-        help="Models to benchmark (default: gpt-3.5-turbo gpt-4o gpt-4o-mini o3)",
+        default=["gpt-4o-mini", "gpt-4o"],
+        help="Models list",
     )
     parser.add_argument(
         "--iterations",
         type=int,
         default=3,
-        help="Number of iterations per model (default: 3)",
+        help="Iterations per model",
     )
     parser.add_argument(
-        "--skip-git-check",
+        "--force-sample",
         action="store_true",
-        help="Skip git repository and staged changes check (for testing)",
+        help="Always use built‑in demo diff",
+    )
+    parser.add_argument(
+        "--check-api-key",
+        action="store_true",
+        help="Only check API key availability",
     )
     args = parser.parse_args()
 
     print("🚀 OpenAI Model Benchmark")
-    print("=" * 60)
+    print("=" * 50)
 
-    # Check API key from environment or config file
-    load_dotenv()
-
-    # Get API key from environment or config file
-    api_key = os.getenv("OPENAI_API_KEY")
-    api_key_source = "environment"
-
-    # If not found in environment, try the config file
-    if not api_key:
-        config = load_config()
-        api_keys = config.get("api_keys", {})
-        api_key = api_keys.get("openai")
-        if api_key:
-            api_key_source = "config file"
-
-        # If found in config, set the environment variable for OpenAIProvider
-        if api_key:
-            os.environ["OPENAI_API_KEY"] = api_key
-
-    # Print API key status if in check-api-key mode
     if args.check_api_key:
-        if api_key:
-            print(f"✅ OpenAI API key found in {api_key_source}")
-            print(f"API key: {api_key[:4]}...{api_key[-4:]} (masked for security)")
+        if _load_api_key():
+            key = os.getenv("OPENAI_API_KEY")
+            print(f"✅ API key found: {key[:4]}...{key[-4:]}")
             sys.exit(0)
-
-    # Final check if we have an API key
-    if not api_key:
-        print("❌ OPENAI_API_KEY not found in environment or config file")
-        print("Please set up your OpenAI API key first with:")
-        print("  export OPENAI_API_KEY=your-api-key")
-        print("  or run 'gai --provider openai' to save it to config")
+        print("❌ No API key found")
         sys.exit(1)
 
-    # Run benchmark if not in check-api-key mode
-    if not args.check_api_key:
-        benchmark_openai_models()
+    if not _load_api_key():
+        print("❌ OPENAI_API_KEY missing (env or config).")
+        print("Set via: export OPENAI_API_KEY=sk-...")
+        sys.exit(1)
+
+    # Pass through to internal runner
+    sys.argv = [sys.argv[0]] + [f"--{k.replace('_','-')}={v}" for k, v in []]  # no-op
+    # Simpler: reuse argparse in benchmark function
+    # Provide flags again for inner parser:
+    extra = []
+    for m in args.models:
+        extra += ["--models", m]
+    extra += ["--iterations", str(args.iterations)]
+    if args.force_sample:
+        extra.append("--force-sample")
+    sys.argv = [sys.argv[0]] + extra
+    benchmark_openai_models()

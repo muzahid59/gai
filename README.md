@@ -2,6 +2,31 @@
 
 AI-powered CLI tool to generate commit messages from your staged Git changes. Works with both local Ollama models and OpenAI's API.
 
+## System Flow Digagram
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant CLI as gai CLI
+    participant Git as Git
+    participant Prov as Provider
+    participant LLM as Model
+
+    U->>CLI: Run "gai"
+    CLI->>Git: Get staged diff
+    Git-->>CLI: Diff text
+    CLI->>Prov: Init provider (ollama/openai)
+    CLI->>Prov: Request commit message (diff)
+    Prov->>LLM: Prompt + diff
+    LLM-->>Prov: Suggested message
+    Prov-->>CLI: Cleaned message
+    CLI->>U: Show suggestion (A/E/R/Q)
+    U->>CLI: Approve (A)
+    CLI->>Git: git commit -m "<message>"
+    Git-->>CLI: Commit done
+    CLI-->>U: Success
+```
+
 ## Installation
 
 ```bash
@@ -67,40 +92,6 @@ gai --provider openai --oneline
 
 # Configure maximum tokens per chunk for large diffs (default: 2000)
 gai --max-tokens 1500
-```
-
-## How It Works
-
-1. **Repository Check**: Verifies you're in a git repository via [`gai.utils.is_git_repository`](src/gai/utils.py)
-2. **Diff Collection**: Gets staged changes with `git diff --staged --minimal --unified=5` using [`gai.utils.get_staged_diff`](src/gai/utils.py)
-3. **AI Processing**: Sends the cleaned diff to the selected AI provider through [`gai.cli.generate_commit_message`](src/gai/cli.py)
-4. **Output Cleaning**: Formats the AI output and removes technical artifacts via [`gai.utils.clean_commit_message`](src/gai/utils.py)
-5. **Interactive Workflow**: Presents options to apply, edit, regenerate or quit via [`gai.cli.handle_user_choice`](src/gai/cli.py)
-6. **Commit**: Applies your approved message with `git commit`
-
-### System Flow Digagram
-
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant CLI as gai CLI
-    participant Git as Git
-    participant Prov as Provider
-    participant LLM as Model
-
-    U->>CLI: Run "gai"
-    CLI->>Git: Get staged diff
-    Git-->>CLI: Diff text
-    CLI->>Prov: Init provider (ollama/openai)
-    CLI->>Prov: Request commit message (diff)
-    Prov->>LLM: Prompt + diff
-    LLM-->>Prov: Suggested message
-    Prov-->>CLI: Cleaned message
-    CLI->>U: Show suggestion (A/E/R/Q)
-    U->>CLI: Approve (A)
-    CLI->>Git: git commit -m "<message>"
-    Git-->>CLI: Commit done
-    CLI-->>U: Success
 ```
 
 ## Interactive Workflow
