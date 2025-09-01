@@ -91,9 +91,7 @@ class OllamaProvider(Provider):
                 return content
             else:
                 logger.error(f"Unexpected response format from Ollama: {full_response}")
-                print(
-                    "\n\033[31mError: Unexpected response format from Ollama.\033[0m"
-                )
+                print("\n\033[31mError: Unexpected response format from Ollama.\033[0m")
                 print(f"Response: {full_response}")
                 return ""
         except requests.exceptions.RequestException as e:
