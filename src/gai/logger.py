@@ -3,7 +3,16 @@ import os
 import sys
 from pathlib import Path
 from typing import Optional
-import pkg_resources
+
+# Replace pkg_resources with importlib.metadata
+try:
+    from importlib.metadata import distribution, PackageNotFoundError
+except ImportError:
+    # Fallback for Python < 3.8
+    try:
+        import pkg_resources
+    except ImportError:
+        pkg_resources = None
 
 
 class GaiLogger:
@@ -24,54 +33,50 @@ class GaiLogger:
     def _is_development_mode(self) -> bool:
         """Check if package is installed in development mode."""
         # Check if production mode is forced via environment variable
-        force_production = os.getenv("GAI_FORCE_PRODUCTION", "").lower() in (
-            "1",
-            "true",
-            "yes",
-            "on",
-        )
+        force_production = os.getenv("GAI_FORCE_PRODUCTION", "").lower() in ("1", "true", "yes", "on")
         if force_production:
             return False
-
+            
         try:
-            # Method 1: Check if installed as editable
-            dist = pkg_resources.get_distribution("gai-commit")
-            if hasattr(dist, "location") and dist.location:
-                # In development mode, location often contains 'src' or ends with the project directory
-                location_path = Path(dist.location)
-
-                # Check if we're in editable install (common patterns)
-                is_editable = (
-                    str(location_path).endswith(".egg-link")
-                    or "src" in str(location_path)
-                    or (location_path / "src").exists()
-                    or (location_path / "setup.py").exists()
-                    or (location_path / "pyproject.toml").exists()
-                )
-
-                if is_editable:
-                    return True
-
-                # Check if we have editable project location (pip install -e .)
+            # Method 1: Try importlib.metadata first (Python 3.8+)
+            if "importlib.metadata" in sys.modules:
                 try:
-                    # This is a more reliable way to check for editable installs
-                    import subprocess
-
-                    result = subprocess.run(
-                        ["pip", "show", "gai-commit"], capture_output=True, text=True
+                    dist_obj = distribution("gai-commit")
+                    # Check if we have direct path access (common for dev mode)
+                    return ".egg-link" in str(dist_obj._path) or "src" in str(
+                        dist_obj._path
                     )
-                    if "Editable project location:" in result.stdout:
-                        return True
-                except Exception:
+                except PackageNotFoundError:
                     pass
 
-        except (pkg_resources.DistributionNotFound, Exception):
+            # Method 2: Fallback to pkg_resources
+            if pkg_resources:
+                try:
+                    dist = pkg_resources.get_distribution("gai-commit")
+                    if hasattr(dist, "location") and dist.location:
+                        # In development mode, location often contains 'src' or ends with project dir
+                        location_path = Path(dist.location)
+
+                        # Check if we're in editable install (common patterns)
+                        is_editable = (
+                            str(location_path).endswith(".egg-link")
+                            or "src" in str(location_path)
+                            or (location_path / "src").exists()
+                            or (location_path / "setup.py").exists()
+                            or (location_path / "pyproject.toml").exists()
+                        )
+
+                        return is_editable
+                except (pkg_resources.DistributionNotFound, Exception):
+                    pass
+        except Exception:
+            # If any part of the detection fails, continue with other methods
             pass
 
-        # Method 2: Check if GAI_DEBUG environment variable is set
+        # Method 3: Check if GAI_DEBUG environment variable is set
         env_debug = os.getenv("GAI_DEBUG", "").lower() in ("1", "true", "yes", "on")
 
-        # Method 3: Check if we're running from source directory
+        # Method 4: Check if we're running from source directory
         try:
             current_file = Path(__file__).resolve()
             # If this file is in a 'src' directory, likely development
