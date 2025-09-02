@@ -33,10 +33,15 @@ class GaiLogger:
     def _is_development_mode(self) -> bool:
         """Check if package is installed in development mode."""
         # Check if production mode is forced via environment variable
-        force_production = os.getenv("GAI_FORCE_PRODUCTION", "").lower() in ("1", "true", "yes", "on")
+        force_production = os.getenv("GAI_FORCE_PRODUCTION", "").lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        )
         if force_production:
             return False
-            
+
         try:
             # Method 1: Try importlib.metadata first (Python 3.8+)
             if "importlib.metadata" in sys.modules:
