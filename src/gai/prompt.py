@@ -99,11 +99,11 @@ OUTPUT_FORMATTING = """
 ✓ Under character limits
 
 **ANTI-PATTERNS TO AVOID:**
-❌ "Fixed stuff" - Too vague
-❌ "Updated user.py" - Lists files not changes
-❌ "Added new feature" - No specifics
-❌ "minor changes" - Meaningless
-❌ "WIP" - Not descriptive
+x "Fixed stuff" - Too vague
+x "Updated user.py" - Lists files not changes
+x "Added new feature" - No specifics
+x "minor changes" - Meaningless
+x "WIP" - Not descriptive
 """.strip()
 
 # Template for human prompt
