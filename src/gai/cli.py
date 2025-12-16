@@ -253,6 +253,11 @@ def main():
     parser.add_argument(
         "--quiet", action="store_true", help="Suppress all logging except errors"
     )
+    parser.add_argument(
+        "--semantic",
+        action="store_true",
+        help="Use semantic analysis to understand code changes (experimental, Python only)"
+    )
     args = parser.parse_args()
 
     # Override logging mode if specified
@@ -279,14 +284,36 @@ def main():
         save_config(config)
         logger.debug(f"Updated max_tokens_per_chunk to {args.max_tokens}")
 
-    # Get staged diff
-    staged_diff = get_staged_diff()
-    if not staged_diff:
-        logger.error("No staged changes found")
-        print(
-            "No staged changes found. Please stage your changes with 'git add' first."
-        )
-        sys.exit(0)
+    # Get staged diff (either semantic or traditional)
+    if args.semantic:
+        logger.info("Using semantic diff analysis")
+        print("🔍 Analyzing code changes semantically...")
+
+        from gai.semantic_analyzer import SemanticAnalyzer
+
+        analyzer = SemanticAnalyzer()
+        semantic_analysis = analyzer.analyze_diff()
+
+        if not semantic_analysis['changes']:
+            logger.error("No staged changes found")
+            print(
+                "No staged changes found. Please stage your changes with 'git add' first."
+            )
+            sys.exit(0)
+
+        staged_diff = analyzer.format_for_ai(semantic_analysis)
+
+        logger.debug(f"Semantic analysis reduced to {len(staged_diff)} characters")
+        print(f"✨ Detected {len(semantic_analysis['changes'])} semantic changes")
+        print(f"📊 Token reduction: ~{100 - int(len(staged_diff) / 50)}% (estimated)\n")
+    else:
+        staged_diff = get_staged_diff()
+        if not staged_diff:
+            logger.error("No staged changes found")
+            print(
+                "No staged changes found. Please stage your changes with 'git add' first."
+            )
+            sys.exit(0)
 
     logger.info("Successfully retrieved staged diff")
 

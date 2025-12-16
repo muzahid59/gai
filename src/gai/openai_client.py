@@ -24,16 +24,32 @@ class OpenAIProvider(Provider):
         """Generate commit message for a single diff chunk."""
         logger.debug(f"Generating message for chunk with {len(diff_chunk)} characters")
 
-        system_prompt = (
-            "You are to act as an expert author of git commit messages. "
-            "Your mission is to create clean and concise commit messages following the Conventional Commit specification. "
-            "\n\nI will provide you with the output of 'git diff --staged' and you must convert it into a proper commit message.\n\n"
-            "**COMMIT FORMAT RULES:**\n"
-            "- Use ONLY these conventional commit keywords: fix, feat, build, chore, ci, docs, style, refactor, perf, test\n"
-            "- Format: <type>[optional scope]: <description>\n"
-            "- Use present tense (e.g., 'add feature' not 'added feature')\n"
-            "- Keep subject line under 50 characters\n"
-        )
+        # Detect if this is a semantic summary
+        is_semantic = diff_chunk.startswith("Files changed:")
+
+        if is_semantic:
+            # Semantic summary prompt
+            system_prompt = (
+                "You are an expert at writing git commit messages. "
+                "I will provide you with a STRUCTURED SUMMARY of code changes extracted by semantic analysis. "
+                "Generate a conventional commit message based on this summary.\n\n"
+                "The summary contains:\n"
+                "- File-level statistics\n"
+                "- Semantic changes (functions/classes added/modified/removed)\n"
+                "- Import changes\n\n"
+            )
+        else:
+            # Traditional diff prompt
+            system_prompt = (
+                "You are to act as an expert author of git commit messages. "
+                "Your mission is to create clean and concise commit messages following the Conventional Commit specification. "
+                "\n\nI will provide you with the output of 'git diff --staged' and you must convert it into a proper commit message.\n\n"
+                "**COMMIT FORMAT RULES:**\n"
+                "- Use ONLY these conventional commit keywords: fix, feat, build, chore, ci, docs, style, refactor, perf, test\n"
+                "- Format: <type>[optional scope]: <description>\n"
+                "- Use present tense (e.g., 'add feature' not 'added feature')\n"
+                "- Keep subject line under 50 characters\n"
+            )
 
         if not oneline:
             system_prompt += (
