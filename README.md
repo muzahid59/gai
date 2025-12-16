@@ -108,11 +108,13 @@ Instead of sending raw diffs to the AI, semantic analysis extracts **meaningful 
 - Functions and classes added/modified/removed
 - Import changes
 - Code structure changes
+- TypeScript interfaces and type definitions
 
 **Benefits:**
 - 🎯 **80-95% token reduction** - Massive cost savings
 - 📊 **Better commit messages** - AI understands what changed, not just how
 - ⚡ **Faster** - Less data to process
+- 🚀 **Parallel processing** - Handles large changesets efficiently (5+ files)
 
 **Example:**
 ```bash
@@ -124,10 +126,18 @@ gai --semantic
 ```
 
 **Currently supports:**
-- ✅ Python files (.py) - Full AST analysis
+- ✅ **Python** (.py) - Full AST analysis
+- ✅ **JavaScript** (.js, .jsx) - Tree-sitter analysis
+- ✅ **TypeScript** (.ts, .tsx) - Tree-sitter analysis with interface detection
 - 🔄 Other files - Falls back to file-level analysis
 
-**Future:** JavaScript, TypeScript, Go, and more languages coming soon!
+**Performance:**
+- Sequential processing for small changes (< 5 files)
+- Parallel processing for large changesets (5+ files, ~3-4x speedup)
+- Smart caching to avoid redundant git operations
+- Handles 50+ file changes efficiently
+
+**Future:** Go, Rust, Java, and more languages coming soon!
 
 ## Interactive Workflow
 

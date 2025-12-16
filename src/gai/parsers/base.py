@@ -4,6 +4,7 @@ Base parser abstract class for language-specific parsers.
 
 from abc import ABC, abstractmethod
 from typing import List, Dict
+from functools import lru_cache
 import subprocess
 
 
@@ -23,9 +24,14 @@ class BaseParser(ABC):
         """
         pass
 
+    @lru_cache(maxsize=256)
     def _get_file_content(self, filepath: str, revision: str) -> str:
         """
         Get file content from git at specific revision.
+
+        PERFORMANCE: Cached using LRU cache to avoid repeated git show calls.
+        Typical scenario: 50 files changed, each needs HEAD and :0 = 100 git calls
+        With cache: Only 100 unique calls, subsequent accesses are instant
 
         Args:
             filepath: Path to the file

@@ -23,6 +23,8 @@ dependencies = [
     "requests",
     "python-dotenv",
     "openai",
+    "tree-sitter>=0.20.0,<0.21.0",
+    "tree-sitter-languages>=1.7.0",
 ]
 
 [project.urls]
