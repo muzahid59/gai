@@ -48,6 +48,8 @@ def save_config(config):
     try:
         with open(CONFIG_FILE, "w") as f:
             json.dump(config, f)
+        # Set restrictive permissions (owner read/write only)
+        os.chmod(CONFIG_FILE, 0o600)
     except IOError:
         print("Warning: Could not save configuration.")
 
@@ -138,6 +140,9 @@ def setup_provider(provider_name: str, model: str) -> Provider:
 
             # Save API key to config and set environment variable
             update_setting("api_key", provider_name=provider_name, value=api_key)
+            print("\n⚠️  WARNING: API key will be stored in plaintext at:")
+            print(f"   {CONFIG_FILE}")
+            print("   For better security, set OPENAI_API_KEY environment variable instead.\n")
 
         # Always set environment variable
         os.environ["OPENAI_API_KEY"] = api_key
@@ -150,7 +155,7 @@ def setup_provider(provider_name: str, model: str) -> Provider:
             update_setting("model", provider_name=provider_name, value=model_to_use)
 
         logger.info(f"Using OpenAI provider with model: {model_to_use}")
-        return OpenAIProvider(model=model_to_use)
+        return OpenAIProvider(model=model_to_use, max_tokens_per_chunk=max_tokens)
 
     else:
         print(f"Invalid provider: {provider_name}. Please choose 'ollama' or 'openai'.")

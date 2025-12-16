@@ -114,6 +114,54 @@ Your options:
 - **R**: Ask the AI to generate a new suggestion using the same diff
 - **Q**: Quit without committing
 
+## Security Best Practices
+
+### API Key Management
+
+**IMPORTANT:** Protect your API keys to prevent unauthorized usage and charges.
+
+#### If You've Exposed an API Key
+
+If you've accidentally committed an API key to version control or shared it:
+
+1. **Immediately revoke the key**:
+   - OpenAI: Visit https://platform.openai.com/api-keys
+   - Find the exposed key and click "Revoke"
+   - Generate a new key
+
+2. **Remove from version control** (if committed to git):
+   ```bash
+   # Remove the file from git history
+   git filter-branch --force --index-filter \
+     "git rm --cached --ignore-unmatch .env" \
+     --prune-empty --tag-name-filter cat -- --all
+
+   # Or use git-filter-repo (recommended)
+   git filter-repo --path .env --invert-paths
+   ```
+
+#### Recommended: Use Environment Variables
+
+The most secure way to use API keys is through environment variables:
+
+```bash
+# Add to your shell profile (~/.bashrc, ~/.zshrc, etc.)
+export OPENAI_API_KEY=sk-your-key-here
+
+# Or use a .env file (already in .gitignore)
+echo "OPENAI_API_KEY=sk-your-key-here" > .env
+```
+
+#### Config File Storage
+
+This tool can save API keys to `~/.config/gai-commit/config.json` for convenience.
+
+**WARNING:** Keys are stored in **plaintext** in this file. Anyone with access to your user account can read them.
+
+- The config file is only readable by your user (permissions: 0600)
+- For better security, use environment variables instead
+- Never commit config files to version control
+
 ## Troubleshooting
 
 ### Common Issues

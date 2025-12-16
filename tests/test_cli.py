@@ -237,7 +237,9 @@ def test_main_openai_provider_default(
             cli.main()
 
         # Assertions
-        mock_OpenAIProvider.assert_called_once_with(model="gpt-3.5-turbo")
+        mock_OpenAIProvider.assert_called_once_with(
+            model="gpt-3.5-turbo", max_tokens_per_chunk=2000
+        )
         mock_provider_instance.generate_commit_message.assert_called_once_with(
             "diff content", oneline=False
         )
@@ -291,7 +293,9 @@ def test_main_openai_provider_with_model(
             cli.main()
 
         # Assertions
-        mock_OpenAIProvider.assert_called_once_with(model="gpt-4")
+        mock_OpenAIProvider.assert_called_once_with(
+            model="gpt-4", max_tokens_per_chunk=2000
+        )
         mock_provider_instance.generate_commit_message.assert_called_once_with(
             "diff content", oneline=False
         )
@@ -380,7 +384,9 @@ def test_main_openai_provider_interactive_api_key(
             cli.main()
 
         # Assertions
-        mock_OpenAIProvider.assert_called_once_with(model="gpt-3.5-turbo")
+        mock_OpenAIProvider.assert_called_once_with(
+            model="gpt-3.5-turbo", max_tokens_per_chunk=2000
+        )
         mock_provider_instance.generate_commit_message.assert_called_once_with(
             "diff content", oneline=False
         )
