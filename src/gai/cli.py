@@ -258,6 +258,16 @@ def main():
         action="store_true",
         help="Use semantic analysis to understand code changes (experimental, Python only)"
     )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Show detailed analysis and processing information"
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview semantic analysis without generating commit message"
+    )
     args = parser.parse_args()
 
     # Override logging mode if specified
@@ -284,8 +294,19 @@ def main():
         save_config(config)
         logger.debug(f"Updated max_tokens_per_chunk to {args.max_tokens}")
 
+    # Handle verbose mode
+    if args.verbose:
+        os.environ["GAI_DEBUG"] = "1"
+        import logging
+        logging.getLogger("gai-commit").setLevel(logging.DEBUG)
+        logger.info("Verbose mode enabled")
+
     # Get staged diff (either semantic or traditional)
-    if args.semantic:
+    if args.semantic or args.dry_run:
+        # dry-run requires semantic analysis
+        if args.dry_run and not args.semantic:
+            args.semantic = True
+
         logger.info("Using semantic diff analysis")
         print("🔍 Analyzing code changes semantically...")
 
@@ -306,6 +327,22 @@ def main():
         logger.debug(f"Semantic analysis reduced to {len(staged_diff)} characters")
         print(f"✨ Detected {len(semantic_analysis['changes'])} semantic changes")
         print(f"📊 Token reduction: ~{100 - int(len(staged_diff) / 50)}% (estimated)\n")
+
+        # Handle dry-run mode
+        if args.dry_run:
+            print("=" * 70)
+            print("🔍 SEMANTIC ANALYSIS PREVIEW (--dry-run mode)")
+            print("=" * 70)
+            print("\n📋 Summary:")
+            print(f"   Files changed: {semantic_analysis['summary']['files_changed']}")
+            print(f"   Stats: {semantic_analysis['summary']['stats']}")
+            print(f"\n📝 Changes detected:")
+            print(staged_diff)
+            print("\n" + "=" * 70)
+            print("✅ Dry-run complete. No commit message generated.")
+            print("   Remove --dry-run to generate commit message.")
+            print("=" * 70)
+            sys.exit(0)
     else:
         staged_diff = get_staged_diff()
         if not staged_diff:

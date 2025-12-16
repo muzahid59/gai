@@ -1,0 +1,185 @@
+{
+  "timestamp": "2025-12-16 22:31:53",
+  "results": [
+    {
+      "file_count": 1,
+      "language": "python",
+      "elapsed_time": 0.03630391756693522,
+      "changes_detected": 2,
+      "raw_tokens": 141,
+      "semantic_tokens": 37,
+      "token_reduction_percent": 73.75886524822694,
+      "processing_mode": "sequential"
+    },
+    {
+      "file_count": 3,
+      "language": "python",
+      "elapsed_time": 0.04446705182393392,
+      "changes_detected": 6,
+      "raw_tokens": 423,
+      "semantic_tokens": 81,
+      "token_reduction_percent": 80.85106382978722,
+      "processing_mode": "sequential"
+    },
+    {
+      "file_count": 5,
+      "language": "python",
+      "elapsed_time": 0.04818598429361979,
+      "changes_detected": 10,
+      "raw_tokens": 706,
+      "semantic_tokens": 125,
+      "token_reduction_percent": 82.29461756373938,
+      "processing_mode": "sequential"
+    },
+    {
+      "file_count": 10,
+      "language": "python",
+      "elapsed_time": 0.04377905527750651,
+      "changes_detected": 20,
+      "raw_tokens": 1412,
+      "semantic_tokens": 235,
+      "token_reduction_percent": 83.356940509915,
+      "processing_mode": "parallel"
+    },
+    {
+      "file_count": 20,
+      "language": "python",
+      "elapsed_time": 0.05808695157368978,
+      "changes_detected": 40,
+      "raw_tokens": 2835,
+      "semantic_tokens": 460,
+      "token_reduction_percent": 83.77425044091711,
+      "processing_mode": "parallel"
+    },
+    {
+      "file_count": 50,
+      "language": "python",
+      "elapsed_time": 0.10361822446187337,
+      "changes_detected": 100,
+      "raw_tokens": 7102,
+      "semantic_tokens": 1135,
+      "token_reduction_percent": 84.01858631371445,
+      "processing_mode": "parallel"
+    },
+    {
+      "file_count": 1,
+      "language": "javascript",
+      "elapsed_time": 0.03633737564086914,
+      "changes_detected": 2,
+      "raw_tokens": 95,
+      "semantic_tokens": 37,
+      "token_reduction_percent": 61.05263157894737,
+      "processing_mode": "sequential"
+    },
+    {
+      "file_count": 3,
+      "language": "javascript",
+      "elapsed_time": 0.04442946116129557,
+      "changes_detected": 6,
+      "raw_tokens": 286,
+      "semantic_tokens": 81,
+      "token_reduction_percent": 71.67832167832168,
+      "processing_mode": "sequential"
+    },
+    {
+      "file_count": 5,
+      "language": "javascript",
+      "elapsed_time": 0.048196633656819664,
+      "changes_detected": 10,
+      "raw_tokens": 477,
+      "semantic_tokens": 125,
+      "token_reduction_percent": 73.79454926624737,
+      "processing_mode": "sequential"
+    },
+    {
+      "file_count": 10,
+      "language": "javascript",
+      "elapsed_time": 0.045357306798299156,
+      "changes_detected": 20,
+      "raw_tokens": 955,
+      "semantic_tokens": 235,
+      "token_reduction_percent": 75.39267015706807,
+      "processing_mode": "parallel"
+    },
+    {
+      "file_count": 20,
+      "language": "javascript",
+      "elapsed_time": 0.05931671460469564,
+      "changes_detected": 40,
+      "raw_tokens": 1920,
+      "semantic_tokens": 460,
+      "token_reduction_percent": 76.04166666666666,
+      "processing_mode": "parallel"
+    },
+    {
+      "file_count": 50,
+      "language": "javascript",
+      "elapsed_time": 0.1141053040822347,
+      "changes_detected": 100,
+      "raw_tokens": 4815,
+      "semantic_tokens": 1135,
+      "token_reduction_percent": 76.42782969885774,
+      "processing_mode": "parallel"
+    },
+    {
+      "file_count": 1,
+      "language": "typescript",
+      "elapsed_time": 0.03585131963094076,
+      "changes_detected": 2,
+      "raw_tokens": 120,
+      "semantic_tokens": 37,
+      "token_reduction_percent": 69.16666666666667,
+      "processing_mode": "sequential"
+    },
+    {
+      "file_count": 3,
+      "language": "typescript",
+      "elapsed_time": 0.046784400939941406,
+      "changes_detected": 6,
+      "raw_tokens": 362,
+      "semantic_tokens": 81,
+      "token_reduction_percent": 77.62430939226519,
+      "processing_mode": "sequential"
+    },
+    {
+      "file_count": 5,
+      "language": "typescript",
+      "elapsed_time": 0.04854226112365723,
+      "changes_detected": 10,
+      "raw_tokens": 603,
+      "semantic_tokens": 125,
+      "token_reduction_percent": 79.27031509121062,
+      "processing_mode": "sequential"
+    },
+    {
+      "file_count": 10,
+      "language": "typescript",
+      "elapsed_time": 0.04922986030578613,
+      "changes_detected": 20,
+      "raw_tokens": 1207,
+      "semantic_tokens": 235,
+      "token_reduction_percent": 80.53024026512013,
+      "processing_mode": "parallel"
+    },
+    {
+      "file_count": 20,
+      "language": "typescript",
+      "elapsed_time": 0.06935842831929524,
+      "changes_detected": 40,
+      "raw_tokens": 2425,
+      "semantic_tokens": 460,
+      "token_reduction_percent": 81.03092783505154,
+      "processing_mode": "parallel"
+    },
+    {
+      "file_count": 50,
+      "language": "typescript",
+      "elapsed_time": 0.13901766141255698,
+      "changes_detected": 100,
+      "raw_tokens": 6077,
+      "semantic_tokens": 1135,
+      "token_reduction_percent": 81.32302122757939,
+      "processing_mode": "parallel"
+    }
+  ]
+}

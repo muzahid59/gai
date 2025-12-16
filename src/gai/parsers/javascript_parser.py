@@ -125,11 +125,20 @@ class JavaScriptParser(BaseParser):
             logger.debug(f"New file {filepath}: {len(functions)} functions, {len(classes)} classes")
 
         except Exception as e:
-            logger.warning(f"Parse error in {filepath}: {e}")
-            changes.append(SemanticChange('file_added', {
-                'path': filepath,
-                'note': f'parse error: {str(e)}'
-            }))
+            error_msg = str(e)
+            # Provide more specific error messages
+            if 'tree-sitter' in error_msg.lower():
+                logger.error(f"Tree-sitter parsing failed for {filepath}: {e}")
+                changes.append(SemanticChange('file_added', {
+                    'path': filepath,
+                    'note': 'tree-sitter parse error (file may have syntax errors)'
+                }))
+            else:
+                logger.warning(f"Parse error in {filepath}: {e}")
+                changes.append(SemanticChange('file_added', {
+                    'path': filepath,
+                    'note': f'parse error: {error_msg[:100]}'  # Limit error message length
+                }))
 
         return changes if changes else [SemanticChange('file_added', {'path': filepath})]
 
@@ -263,11 +272,26 @@ class JavaScriptParser(BaseParser):
             logger.debug(f"Modified file {filepath}: {len(changes)} semantic changes")
 
         except Exception as e:
-            logger.warning(f"Parse error comparing {filepath}: {e}")
-            changes.append(SemanticChange('file_modified', {
-                'path': filepath,
-                'note': f'parse error: {str(e)}'
-            }))
+            error_msg = str(e)
+            # Provide more specific error messages
+            if 'tree-sitter' in error_msg.lower():
+                logger.error(f"Tree-sitter parsing failed for {filepath}: {e}")
+                changes.append(SemanticChange('file_modified', {
+                    'path': filepath,
+                    'note': 'tree-sitter parse error (file may have syntax errors)'
+                }))
+            elif 'unicode' in error_msg.lower() or 'decode' in error_msg.lower():
+                logger.error(f"Encoding error in {filepath}: {e}")
+                changes.append(SemanticChange('file_modified', {
+                    'path': filepath,
+                    'note': 'encoding error (file may not be valid UTF-8)'
+                }))
+            else:
+                logger.warning(f"Parse error comparing {filepath}: {e}")
+                changes.append(SemanticChange('file_modified', {
+                    'path': filepath,
+                    'note': f'parse error: {error_msg[:100]}'  # Limit error message length
+                }))
 
         return changes if changes else [SemanticChange('file_modified', {'path': filepath})]
 

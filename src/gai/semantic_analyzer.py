@@ -213,6 +213,10 @@ class SemanticAnalyzer:
 
         logger.debug(f"Processing {len(files)} files with {max_workers} workers")
 
+        # Show progress for large changesets
+        show_progress = len(files) > 10
+        completed_count = 0
+
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             # Submit all file analysis tasks
             future_to_file = {
@@ -230,6 +234,16 @@ class SemanticAnalyzer:
                         logger.debug(f"File {file_info['path']}: {len(changes)} changes")
                 except Exception as e:
                     logger.error(f"Error analyzing {file_info['path']}: {e}")
+
+                # Update progress
+                completed_count += 1
+                if show_progress:
+                    # Print progress without newline, overwrite same line
+                    print(f"\r   Processing files: {completed_count}/{len(files)}...", end='', flush=True)
+
+        # Clear progress line
+        if show_progress:
+            print(f"\r   ✓ Analyzed {len(files)} files" + " " * 20)  # Clear with spaces
 
         return all_changes
 

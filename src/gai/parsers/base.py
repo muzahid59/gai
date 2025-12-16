@@ -45,8 +45,31 @@ class BaseParser(ABC):
                 ["git", "show", f"{revision}:{filepath}"],
                 capture_output=True,
                 text=True,
-                check=False
+                check=False,
+                timeout=30  # Prevent hanging on large files
             )
-            return result.stdout if result.returncode == 0 else ""
-        except Exception:
+
+            if result.returncode != 0:
+                # Check if file is binary or doesn't exist
+                if b'binary file' in result.stderr.encode():
+                    from gai.logger import logger
+                    logger.debug(f"Skipping binary file: {filepath}")
+                    return ""
+                return ""
+
+            # Check file size (warn if > 1MB)
+            content = result.stdout
+            if len(content) > 1_000_000:  # 1MB
+                from gai.logger import logger
+                logger.warning(f"Large file detected: {filepath} ({len(content)} bytes)")
+
+            return content
+
+        except subprocess.TimeoutExpired:
+            from gai.logger import logger
+            logger.error(f"Timeout reading file: {filepath}")
+            return ""
+        except Exception as e:
+            from gai.logger import logger
+            logger.error(f"Error reading file {filepath}: {e}")
             return ""
