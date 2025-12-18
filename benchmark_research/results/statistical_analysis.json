@@ -1,0 +1,118 @@
+{
+  "metadata": {
+    "analysis_date": "2025-12-17T12:36:02.608553",
+    "commits_analyzed": 10,
+    "source_file": "benchmark_research/data/commits.json",
+    "repository": "/Users/muzahidul.islam/opti/javascript-sdk"
+  },
+  "statistical_analysis": {
+    "descriptive_stats": {
+      "token_reduction": {
+        "mean": 94.28556167328603,
+        "median": 94.78260869565217,
+        "std_dev": 4.293619502063877,
+        "min": 86.47342995169082,
+        "max": 98.89413351314901,
+        "q1": 92.63683960019038,
+        "q3": 97.7006196922997
+      },
+      "cost_savings": {
+        "mean": 0.0020604,
+        "median": 0.0006975,
+        "std_dev": 0.003303939708893006,
+        "min": 0.00024900000000000004,
+        "max": 0.0109995,
+        "q1": 0.000535125,
+        "q3": 0.0021285
+      },
+      "tokens_saved": {
+        "mean": 1373.6,
+        "median": 465.0,
+        "std_dev": 2202.6264725953374,
+        "min": 166,
+        "max": 7333,
+        "q1": 356.75,
+        "q3": 1419.0
+      }
+    },
+    "distribution_analysis": {
+      "buckets": {
+        "0-50%": 0,
+        "50-70%": 0,
+        "70-85%": 0,
+        "85-95%": 6,
+        "95-100%": 4
+      },
+      "total_commits": 10
+    },
+    "correlation_analysis": {
+      "files_vs_reduction_correlation": 0.4699646305985881,
+      "interpretation": "moderate"
+    },
+    "outlier_detection": {
+      "iqr": 5.063780092109312,
+      "lower_bound": 85.04116946202642,
+      "upper_bound": 105.29628983046366,
+      "outliers": [],
+      "outlier_count": 0
+    },
+    "efficiency_analysis": {
+      "best_performers": [
+        {
+          "commit_hash": "27d6a24e",
+          "token_reduction": 98.89413351314901,
+          "tokens_saved": 7333
+        },
+        {
+          "commit_hash": "83b70179",
+          "token_reduction": 98.00469483568075,
+          "tokens_saved": 2505
+        },
+        {
+          "commit_hash": "894af956",
+          "token_reduction": 97.59926131117267,
+          "tokens_saved": 1057
+        },
+        {
+          "commit_hash": "aa3381ec",
+          "token_reduction": 96.22641509433963,
+          "tokens_saved": 714
+        },
+        {
+          "commit_hash": "06188026",
+          "token_reduction": 94.78260869565217,
+          "tokens_saved": 436
+        }
+      ],
+      "worst_performers": [
+        {
+          "commit_hash": "8e33597f",
+          "token_reduction": 94.78260869565217,
+          "tokens_saved": 436
+        },
+        {
+          "commit_hash": "0d034b2c",
+          "token_reduction": 94.6360153256705,
+          "tokens_saved": 494
+        },
+        {
+          "commit_hash": "de3baaae",
+          "token_reduction": 94.54545454545455,
+          "tokens_saved": 416
+        },
+        {
+          "commit_hash": "4fc5339a",
+          "token_reduction": 86.91099476439791,
+          "tokens_saved": 166
+        },
+        {
+          "commit_hash": "78eaa415",
+          "token_reduction": 86.47342995169082,
+          "tokens_saved": 179
+        }
+      ],
+      "efficiency_score": 97.58454106280193,
+      "total_cost_savings": 0.020604
+    }
+  }
+}

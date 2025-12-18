@@ -1,0 +1,263 @@
+{
+  "metadata": {
+    "analysis_date": "2025-12-17T12:36:02.608553",
+    "commits_analyzed": 10,
+    "source_file": "benchmark_research/data/commits.json",
+    "repository": "/Users/muzahidul.islam/opti/javascript-sdk"
+  },
+  "summary": {
+    "overall": {
+      "commits_analyzed": 10,
+      "total_traditional_tokens": 14076,
+      "total_semantic_tokens": 340,
+      "total_tokens_saved": 13736,
+      "average_token_reduction_percent": 94.28556167328603,
+      "total_traditional_cost": 0.021114,
+      "total_semantic_cost": 0.00051,
+      "total_cost_savings": 0.020604,
+      "total_traditional_time": 0.0003170967102050781,
+      "total_semantic_time": 0.1361986026763916,
+      "average_time_difference": 0.013588150596618654
+    },
+    "by_size": {
+      "small": {
+        "count": 8,
+        "avg_token_reduction_percent": 93.24459854800381,
+        "total_cost_savings": 0.005847000000000001,
+        "avg_traditional_tokens": 513.125,
+        "avg_semantic_tokens": 25.875
+      },
+      "medium": {
+        "count": 2,
+        "avg_token_reduction_percent": 98.44941417441488,
+        "total_cost_savings": 0.014757000000000001,
+        "avg_traditional_tokens": 4985.5,
+        "avg_semantic_tokens": 66.5
+      }
+    },
+    "by_language": {
+      "typescript": {
+        "count": 10,
+        "avg_token_reduction_percent": 94.28556167328603,
+        "total_cost_savings": 0.020604,
+        "avg_traditional_tokens": 1407.6,
+        "avg_semantic_tokens": 34.0
+      }
+    },
+    "by_commit_type": {
+      "test": {
+        "count": 3,
+        "avg_token_reduction_percent": 93.04875713374702,
+        "total_cost_savings": 0.0025755,
+        "avg_traditional_tokens": 598.6666666666666,
+        "avg_semantic_tokens": 26.333333333333332
+      },
+      "other": {
+        "count": 6,
+        "avg_token_reduction_percent": 94.28410841598973,
+        "total_cost_savings": 0.014271,
+        "avg_traditional_tokens": 1620.6666666666667,
+        "avg_semantic_tokens": 35.0
+      },
+      "feat": {
+        "count": 1,
+        "avg_token_reduction_percent": 98.00469483568075,
+        "total_cost_savings": 0.0037575,
+        "avg_traditional_tokens": 2556.0,
+        "avg_semantic_tokens": 51.0
+      }
+    }
+  },
+  "comparisons": [
+    {
+      "commit_hash": "4fc5339a",
+      "traditional": {
+        "tokens": 191,
+        "time_seconds": 0.0001609325408935547,
+        "cost": 0.0002865
+      },
+      "semantic": {
+        "tokens": 25,
+        "time_seconds": 0.01202884864807129,
+        "cost": 3.7500000000000003e-05
+      },
+      "metrics": {
+        "token_reduction_percent": 86.91099476439791,
+        "tokens_saved": 166,
+        "cost_savings": 0.00024900000000000004,
+        "time_difference": 0.011867916107177735
+      }
+    },
+    {
+      "commit_hash": "894af956",
+      "traditional": {
+        "tokens": 1083,
+        "time_seconds": 2.9325485229492188e-05,
+        "cost": 0.0016245
+      },
+      "semantic": {
+        "tokens": 26,
+        "time_seconds": 0.012020027160644531,
+        "cost": 3.9e-05
+      },
+      "metrics": {
+        "token_reduction_percent": 97.59926131117267,
+        "tokens_saved": 1057,
+        "cost_savings": 0.0015855,
+        "time_difference": 0.01199070167541504
+      }
+    },
+    {
+      "commit_hash": "27d6a24e",
+      "traditional": {
+        "tokens": 7415,
+        "time_seconds": 2.09808349609375e-05,
+        "cost": 0.0111225
+      },
+      "semantic": {
+        "tokens": 82,
+        "time_seconds": 0.024026941299438477,
+        "cost": 0.000123
+      },
+      "metrics": {
+        "token_reduction_percent": 98.89413351314901,
+        "tokens_saved": 7333,
+        "cost_savings": 0.0109995,
+        "time_difference": 0.02400596046447754
+      }
+    },
+    {
+      "commit_hash": "83b70179",
+      "traditional": {
+        "tokens": 2556,
+        "time_seconds": 1.811981201171875e-05,
+        "cost": 0.003834
+      },
+      "semantic": {
+        "tokens": 51,
+        "time_seconds": 0.016020980834960938,
+        "cost": 7.65e-05
+      },
+      "metrics": {
+        "token_reduction_percent": 98.00469483568075,
+        "tokens_saved": 2505,
+        "cost_savings": 0.0037575,
+        "time_difference": 0.01600286102294922
+      }
+    },
+    {
+      "commit_hash": "06188026",
+      "traditional": {
+        "tokens": 460,
+        "time_seconds": 1.5974044799804688e-05,
+        "cost": 0.0006900000000000001
+      },
+      "semantic": {
+        "tokens": 24,
+        "time_seconds": 0.012018835067749024,
+        "cost": 3.6e-05
+      },
+      "metrics": {
+        "token_reduction_percent": 94.78260869565217,
+        "tokens_saved": 436,
+        "cost_savings": 0.0006540000000000001,
+        "time_difference": 0.012002861022949219
+      }
+    },
+    {
+      "commit_hash": "8e33597f",
+      "traditional": {
+        "tokens": 460,
+        "time_seconds": 1.4781951904296875e-05,
+        "cost": 0.0006900000000000001
+      },
+      "semantic": {
+        "tokens": 24,
+        "time_seconds": 0.012018835067749024,
+        "cost": 3.6e-05
+      },
+      "metrics": {
+        "token_reduction_percent": 94.78260869565217,
+        "tokens_saved": 436,
+        "cost_savings": 0.0006540000000000001,
+        "time_difference": 0.012004053115844727
+      }
+    },
+    {
+      "commit_hash": "de3baaae",
+      "traditional": {
+        "tokens": 440,
+        "time_seconds": 1.3113021850585938e-05,
+        "cost": 0.00066
+      },
+      "semantic": {
+        "tokens": 24,
+        "time_seconds": 0.012017166137695313,
+        "cost": 3.6e-05
+      },
+      "metrics": {
+        "token_reduction_percent": 94.54545454545455,
+        "tokens_saved": 416,
+        "cost_savings": 0.000624,
+        "time_difference": 0.012004053115844727
+      }
+    },
+    {
+      "commit_hash": "78eaa415",
+      "traditional": {
+        "tokens": 207,
+        "time_seconds": 1.4066696166992188e-05,
+        "cost": 0.0003105
+      },
+      "semantic": {
+        "tokens": 28,
+        "time_seconds": 0.012016927719116211,
+        "cost": 4.2000000000000004e-05
+      },
+      "metrics": {
+        "token_reduction_percent": 86.47342995169082,
+        "tokens_saved": 179,
+        "cost_savings": 0.0002685,
+        "time_difference": 0.012002861022949219
+      }
+    },
+    {
+      "commit_hash": "0d034b2c",
+      "traditional": {
+        "tokens": 522,
+        "time_seconds": 1.4781951904296875e-05,
+        "cost": 0.0007830000000000001
+      },
+      "semantic": {
+        "tokens": 28,
+        "time_seconds": 0.012015735626220703,
+        "cost": 4.2000000000000004e-05
+      },
+      "metrics": {
+        "token_reduction_percent": 94.6360153256705,
+        "tokens_saved": 494,
+        "cost_savings": 0.000741,
+        "time_difference": 0.012000953674316406
+      }
+    },
+    {
+      "commit_hash": "aa3381ec",
+      "traditional": {
+        "tokens": 742,
+        "time_seconds": 1.5020370483398438e-05,
+        "cost": 0.001113
+      },
+      "semantic": {
+        "tokens": 28,
+        "time_seconds": 0.012014305114746094,
+        "cost": 4.2000000000000004e-05
+      },
+      "metrics": {
+        "token_reduction_percent": 96.22641509433963,
+        "tokens_saved": 714,
+        "cost_savings": 0.0010710000000000001,
+        "time_difference": 0.011999284744262696
+      }
+    }
+  ]
+}
