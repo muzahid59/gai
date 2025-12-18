@@ -1,6 +1,6 @@
 # Semantic Diff Analysis Benchmark Report
 
-**Generated:** 2025-12-17 12:36:02
+**Generated:** 2025-12-18 10:47:06
 
 ---
 
@@ -10,9 +10,9 @@ This report presents a comprehensive performance comparison between **semantic d
 
 **Key Results:**
 - Analyzed **10 real commits** from the repository
-- Achieved **94.3% average token reduction**
-- Estimated **$0.0206 cost savings** (97.6% reduction)
-- Processed **14,076 tokens** (traditional) vs **340 tokens** (semantic)
+- Achieved **96.4% average token reduction**
+- Estimated **$0.1137 cost savings** (99.2% reduction)
+- Processed **76,435 tokens** (traditional) vs **644 tokens** (semantic)
 
 The semantic approach demonstrates **significant advantages** in token efficiency while maintaining semantic understanding of code changes.
 
@@ -22,9 +22,9 @@ The semantic approach demonstrates **significant advantages** in token efficienc
 
 ### Data Collection
 
-- **Repository:** /Users/muzahidul.islam/opti/javascript-sdk
+- **Repository:** /Users/muzahidul.islam/opti/fullstack-sdk-compatibility-suite
 - **Commits Analyzed:** 10
-- **Collection Date:** 2025-12-17T12:36:02.606485
+- **Collection Date:** 2025-12-18T10:47:06.073045
 - **Criteria:** Excluded merge commits, minimum 1 file changed
 
 ### Commit Classification
@@ -72,16 +72,17 @@ Commits were classified across three dimensions:
 
 | Metric | Traditional | Semantic | Improvement |
 |--------|-------------|----------|-------------|
-| **Total Tokens** | 14,076 | 340 | 94.3% reduction |
-| **Total Cost** | $0.0211 | $0.0005 | $0.0206 saved |
-| **Processing Time** | 0.00s | 0.14s | 0.014s avg diff |
+| **Total Tokens** | 76,435 | 644 | 96.4% reduction |
+| **Total Cost** | $0.1147 | $0.0010 | $0.1137 saved |
+| **Processing Time** | 0.00s | 0.23s | 0.023s avg diff |
 
 ### Performance by Commit Size
 
 | Size | Commits | Avg Token Reduction | Cost Savings |
 |------|---------|---------------------|--------------|
-| Small | 8 | 93.2% | $0.0058 |
-| Medium | 2 | 98.4% | $0.0148 |
+| Small | 5 | 94.1% | $0.0066 |
+| Medium | 2 | 97.6% | $0.0082 |
+| Large | 3 | 99.5% | $0.0989 |
 
 **Insight:** Medium and large commits show higher token reduction rates, suggesting semantic analysis scales well with complexity.
 
@@ -89,7 +90,8 @@ Commits were classified across three dimensions:
 
 | Language | Commits | Avg Token Reduction | Avg Traditional Tokens | Avg Semantic Tokens |
 |----------|---------|---------------------|------------------------|---------------------|
-| Typescript | 10 | 94.3% | 1408 | 34 |
+| Javascript | 8 | 96.0% | 8979 | 70 |
+| Config | 2 | 98.2% | 2300 | 43 |
 
 **Insight:** Python files show excellent token reduction, while config/docs files have lower but still significant reduction.
 
@@ -97,9 +99,9 @@ Commits were classified across three dimensions:
 
 | Type | Commits | Avg Token Reduction |
 |------|---------|---------------------|
-| Feat | 1 | 98.0% |
-| Other | 6 | 94.3% |
-| Test | 3 | 93.0% |
+| Other | 1 | 98.3% |
+| Fix | 3 | 97.7% |
+| Feat | 6 | 95.5% |
 
 ---
 
@@ -111,13 +113,13 @@ Commits were classified across three dimensions:
 
 | Statistic | Value |
 |-----------|-------|
-| Mean | 94.29% |
-| Median | 94.78% |
-| Std Dev | 4.29% |
-| Min | 86.47% |
-| Max | 98.89% |
-| Q1 (25th percentile) | 92.64% |
-| Q3 (75th percentile) | 97.70% |
+| Mean | 96.42% |
+| Median | 98.07% |
+| Std Dev | 3.54% |
+| Min | 90.43% |
+| Max | 99.51% |
+| Q1 (25th percentile) | 92.08% |
+| Q3 (75th percentile) | 99.44% |
 
 ### Distribution Analysis
 
@@ -126,12 +128,12 @@ Token reduction distribution across commits:
 - **0-50%**: 0 commits (0.0%) 
 - **50-70%**: 0 commits (0.0%) 
 - **70-85%**: 0 commits (0.0%) 
-- **85-95%**: 6 commits (60.0%) ██████████████████████████████
-- **95-100%**: 4 commits (40.0%) ████████████████████
+- **85-95%**: 3 commits (30.0%) ███████████████
+- **95-100%**: 7 commits (70.0%) ███████████████████████████████████
 
 ### Correlation Analysis
 
-**Files Changed vs Token Reduction:** 0.470 (moderate correlation)
+**Files Changed vs Token Reduction:** 0.677 (moderate correlation)
 
 This indicates that commits with more files tend to achieve better token reduction with semantic analysis.
 
@@ -139,11 +141,11 @@ This indicates that commits with more files tend to achieve better token reducti
 
 **Best Token Reduction:**
 
-1. Commit `27d6a24e`: **98.9%** reduction (7,333 tokens saved)
-2. Commit `83b70179`: **98.0%** reduction (2,505 tokens saved)
-3. Commit `894af956`: **97.6%** reduction (1,057 tokens saved)
-4. Commit `aa3381ec`: **96.2%** reduction (714 tokens saved)
-5. Commit `06188026`: **94.8%** reduction (436 tokens saved)
+1. Commit `803202c`: **99.5%** reduction (23,826 tokens saved)
+2. Commit `0736507`: **99.4%** reduction (21,165 tokens saved)
+3. Commit `d2b99eb`: **99.4%** reduction (20,915 tokens saved)
+4. Commit `37a0ba6`: **98.3%** reduction (1,419 tokens saved)
+5. Commit `73c2012`: **98.1%** reduction (3,096 tokens saved)
 
 ---
 
@@ -152,27 +154,27 @@ This indicates that commits with more files tend to achieve better token reducti
 ### Token Usage Comparison
 
 ```
-Traditional: ██████████████████████████████████████████████████ 14,076 tokens (100%)
-Semantic:    █ 340 tokens (2.4%)
+Traditional: ██████████████████████████████████████████████████ 76,435 tokens (100%)
+Semantic:     644 tokens (0.8%)
 ```
 
-**Token Reduction:** 97.6%
+**Token Reduction:** 99.2%
 
 ### Cost Savings Visualization
 
 ```
-Traditional Cost: $0.0211
-Semantic Cost:    $0.0005
-Savings:          $0.0206 (97.6%)
+Traditional Cost: $0.1147
+Semantic Cost:    $0.0010
+Savings:          $0.1137 (99.2%)
 ```
 
 ---
 
 ## Key Findings
 
-1. **Exceptional Token Reduction:** The semantic approach achieves an average of **94.3% token reduction**, significantly reducing the amount of data sent to AI models.
+1. **Exceptional Token Reduction:** The semantic approach achieves an average of **96.4% token reduction**, significantly reducing the amount of data sent to AI models.
 
-2. **Substantial Cost Savings:** Estimated **$0.0206** in cost savings across 10 commits, representing a **97.6% reduction** in API costs.
+2. **Substantial Cost Savings:** Estimated **$0.1137** in cost savings across 10 commits, representing a **99.2% reduction** in API costs.
 
 3. **Consistent Performance:** 50% of commits achieve 95-100% token reduction, demonstrating reliable performance across different types of changes.
 
@@ -255,8 +257,8 @@ These results validate the semantic approach as a superior alternative to tradit
 
 ### Data Sources
 
-- Commits: `/Users/muzahidul.islam/opti/javascript-sdk`
-- Analysis Date: 2025-12-17T12:36:02.608553
+- Commits: `/Users/muzahidul.islam/opti/fullstack-sdk-compatibility-suite`
+- Analysis Date: 2025-12-18T10:47:06.076361
 - Total Commits Analyzed: 10
 
 ### Methodology Notes
@@ -267,4 +269,4 @@ These results validate the semantic approach as a superior alternative to tradit
 
 ---
 
-*Report generated on 2025-12-17 at 12:36:02*
+*Report generated on 2025-12-18 at 10:47:06*
